@@ -1,11 +1,11 @@
-const CopyWebpackPlugin = require("copy-webpack-plugin");
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const path = require('path');
 
 module.exports = {
-  entry: "./bootstrap.js",
+  entry: './bootstrap.js',
   output: {
-    path: path.resolve(__dirname, "dist"),
-    filename: "bootstrap.js",
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'bootstrap.js',
   },
   devtool: 'inline-source-map',
   module: {
@@ -15,20 +15,22 @@ module.exports = {
         use: 'ts-loader',
         exclude: /node_modules/,
       },
+      {
+        test: /\.(s(a|s)ss|css)$/,
+        use: ['style-loader', 'css-loader', 'sass-loader'],
+      },
     ],
   },
-  mode: "development",
+  mode: 'development',
   plugins: [
     new CopyWebpackPlugin({
-      patterns: [
-        { from: "index.html", to: "index.html" },
-      ],
+      patterns: [{ from: 'index.html', to: 'index.html' }],
     }),
   ],
   resolve: {
-    extensions: ['.ts', '.js'],
+    extensions: ['.sass', '.ts', '.js'],
   },
   experiments: {
-    syncWebAssembly: true
-  }
+    syncWebAssembly: true,
+  },
 };

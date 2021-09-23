@@ -1,0 +1,37 @@
+{
+  "name": "autocuber-www",
+  "collaborators": [
+    "thirdsgames <thirdsgames2018@gmail.com>"
+  ],
+  "version": "0.1.0",
+  "description": "cube simulator and solver frontend",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack --config webpack.config.js",
+    "start": "webpack-dev-server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thirdsgames/autocuber.git"
+  },
+  "keywords": [
+    "webassembly",
+    "wasm",
+    "rust",
+    "webpack"
+  ],
+  "license": "(MIT OR Apache-2.0)",
+  "bugs": {
+    "url": "https://github.com/thirdsgames/autocuber/issues"
+  },
+  "homepage": "https://github.com/thirdsgames/autocuber#readme",
+  "dependencies": {
+    "autocuber": "file:../backend/pkg"
+  },
+  "devDependencies": {
+    "webpack": "^4.29.3",
+    "webpack-cli": "^3.1.0",
+    "webpack-dev-server": "^3.1.5",
+    "copy-webpack-plugin": "^5.0.0"
+  }
+}

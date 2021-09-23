@@ -9,8 +9,17 @@ use wasm_bindgen::prelude::*;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
-extern {
+extern "C" {
     fn alert(s: &str);
+}
+
+#[wasm_bindgen]
+pub struct Universe;
+
+#[wasm_bindgen]
+pub fn init() -> Universe {
+    utils::set_panic_hook();
+    Universe
 }
 
 #[wasm_bindgen]

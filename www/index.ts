@@ -1,5 +1,7 @@
 import * as wasm from "autocuber";
 
-var universe = wasm.init();
+let universe = wasm.init();
+console.log(universe);
+
 wasm.greet();
 universe.free();

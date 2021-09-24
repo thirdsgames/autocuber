@@ -46,9 +46,9 @@ export default class Cube {
                         // Don't create the core as a piece
                         return;
                     }
-                    const cubelet = new Cubelet(scene, x, y, z, faceScale);
+                    const cubelet = new Cubelet(scene, x, y, z, faceScale, scale);
                     cubelet.set(
-                        new THREE.Vector3(x * scale, y * scale, z * scale),
+                        new THREE.Vector3(x, y, z),
                         new THREE.Quaternion(),
                         new THREE.Vector3(0, 0, 0)
                     );
@@ -72,7 +72,7 @@ export default class Cube {
             [-1, 0, 1].forEach((y) => {
                 const piece = this.pieces[pieceIndex(x, y, 1)];
                 piece.set(
-                    new THREE.Vector3(y * scale, -x * scale, scale),
+                    new THREE.Vector3(y, -x, 1),
                     new THREE.Quaternion().setFromAxisAngle(
                         new THREE.Vector3(0, 0, 1),
                         -Math.PI / 2

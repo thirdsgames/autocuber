@@ -72,10 +72,21 @@ export default class Cubelet {
 
     animationTime: number = 0;
 
+    scale: number;
+
     // The cubelet should be a position on the cube, represented as x-y-z integer coords.
     // The cube's core has coordinates (0, 0, 0).
     // The cubelet faces are ordered F R U B L D.
-    constructor(scene: THREE.Scene, x: number, y: number, z: number, scale: number) {
+    constructor(
+        scene: THREE.Scene,
+        x: number,
+        y: number,
+        z: number,
+        faceScale: number,
+        scale: number
+    ) {
+        this.scale = scale;
+
         for (let i = 0; i < 6; i += 1) {
             let material = materials.K;
 
@@ -115,28 +126,28 @@ export default class Cubelet {
             }
 
             const mesh = new THREE.Mesh(plane, material);
-            mesh.scale.setScalar(scale);
+            mesh.scale.setScalar(faceScale);
             mesh.parent = this.root;
             this.root.add(mesh);
             this.faces.push(mesh);
         }
         scene.add(this.root);
 
-        this.faces[0].position.add(new THREE.Vector3(0, 0, scale * 0.5));
+        this.faces[0].position.add(new THREE.Vector3(0, 0, faceScale * 0.5));
 
-        this.faces[1].position.add(new THREE.Vector3(scale * 0.5, 0, 0));
+        this.faces[1].position.add(new THREE.Vector3(faceScale * 0.5, 0, 0));
         this.faces[1].rotateY(Math.PI * 0.5);
 
-        this.faces[2].position.add(new THREE.Vector3(0, scale * 0.5, 0));
+        this.faces[2].position.add(new THREE.Vector3(0, faceScale * 0.5, 0));
         this.faces[2].rotateX(Math.PI * -0.5);
 
-        this.faces[3].position.add(new THREE.Vector3(0, 0, scale * -0.5));
+        this.faces[3].position.add(new THREE.Vector3(0, 0, faceScale * -0.5));
         this.faces[3].rotateY(Math.PI);
 
-        this.faces[4].position.add(new THREE.Vector3(scale * -0.5, 0, 0));
+        this.faces[4].position.add(new THREE.Vector3(faceScale * -0.5, 0, 0));
         this.faces[4].rotateY(Math.PI * -0.5);
 
-        this.faces[5].position.add(new THREE.Vector3(0, scale * -0.5, 0));
+        this.faces[5].position.add(new THREE.Vector3(0, faceScale * -0.5, 0));
         this.faces[5].rotateX(Math.PI * 0.5);
 
         this.set(
@@ -152,8 +163,9 @@ export default class Cubelet {
     set(position: THREE.Vector3, rotation: THREE.Quaternion, axis: THREE.Vector3) {
         this.animationTime = 0.0;
 
-        this.prevLogicalPosition.copy(this.root.position);
+        this.prevLogicalPosition.copy(this.root.position).divideScalar(this.scale);
         this.logicalPosition.copy(position);
+        this.logicalPosition.round();
 
         this.prevLogicalRotation.copy(this.root.quaternion);
         this.logicalRotation.copy(rotation);
@@ -170,7 +182,10 @@ export default class Cubelet {
         );
 
         if (this.axis.x === 0 && this.axis.y === 0 && this.axis.z === 0) {
-            this.root.position.copy(this.prevLogicalPosition).lerp(this.logicalPosition, t);
+            this.root.position
+                .copy(this.prevLogicalPosition)
+                .lerp(this.logicalPosition, t)
+                .multiplyScalar(this.scale);
         } else {
             // Use a custom position lerp that preserves the side length when
             // rotating through the given axis.
@@ -208,9 +223,13 @@ export default class Cubelet {
             const rho = angleLerp(rhoStart, rhoEnd);
             const phi = angleLerp(phiStart, phiEnd);
 
-            this.root.position.copy(
-                new THREE.Vector3(rho * Math.cos(phi), rho * Math.sin(phi), z).applyMatrix4(rotZ)
-            );
+            this.root.position
+                .copy(
+                    new THREE.Vector3(rho * Math.cos(phi), rho * Math.sin(phi), z).applyMatrix4(
+                        rotZ
+                    )
+                )
+                .multiplyScalar(this.scale);
         }
 
         this.root.quaternion.copy(this.prevLogicalRotation).slerp(this.logicalRotation, t);

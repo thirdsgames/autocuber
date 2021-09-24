@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { NumberKeyframeTrack, Vector3 } from 'three';
 
 const plane = new THREE.PlaneGeometry(1, 1, 1, 1);
 const colours = {

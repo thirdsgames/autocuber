@@ -20,6 +20,9 @@
 
         // Autoformatter removes commas
         "comma-dangle": "off",
-        "@typescript-eslint/comma-dangle": "off"
+        "@typescript-eslint/comma-dangle": "off",
+
+        "implicit-arrow-linebreak": "off",
+        "function-paren-newline": "off"
     }
 }

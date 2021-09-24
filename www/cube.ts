@@ -10,6 +10,7 @@ function mod(n: number, m: number): number {
     return ((n % m) + m) % m;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function indexToPiece(n: number): [number, number, number] {
     let n2 = n;
 
@@ -35,7 +36,25 @@ function indexToPiece(n: number): [number, number, number] {
 const scale = 0.3;
 const faceScale = scale * 0.96;
 
-type Face = 'F' | 'R' | 'U' | 'B' | 'L' | 'D' | 'M' | 'E' | 'S';
+type Face =
+    | 'F'
+    | 'f'
+    | 'R'
+    | 'r'
+    | 'U'
+    | 'u'
+    | 'B'
+    | 'b'
+    | 'L'
+    | 'l'
+    | 'D'
+    | 'd'
+    | 'M'
+    | 'E'
+    | 'S'
+    | 'x'
+    | 'y'
+    | 'z';
 interface Move {
     face: Face;
     rotations: number;
@@ -84,7 +103,7 @@ export default class Cube {
     }
 
     update(delta: number) {
-        Object.entries(this.pieces).forEach(([n, cubelet]) => {
+        Object.values(this.pieces).forEach((cubelet) => {
             // const [x, y, z] = indexToPiece(parseInt(n, 10));
             cubelet.update(delta);
         });
@@ -135,26 +154,53 @@ export default class Cube {
             case 'F':
                 this.move_any((_x, _y, z) => z === 1, new THREE.Vector3(0, 0, 1), move.rotations);
                 break;
+            case 'f':
+                this.move_any((_x, _y, z) => z !== -1, new THREE.Vector3(0, 0, 1), move.rotations);
+                break;
+            case 'z':
+                this.move_any((_x, _y, _z) => true, new THREE.Vector3(0, 0, 1), move.rotations);
+                break;
             case 'S':
                 this.move_any((_x, _y, z) => z === 0, new THREE.Vector3(0, 0, 1), move.rotations);
                 break;
             case 'R':
                 this.move_any((x, _y, _z) => x === 1, new THREE.Vector3(1, 0, 0), move.rotations);
                 break;
+            case 'r':
+                this.move_any((x, _y, _z) => x !== -1, new THREE.Vector3(1, 0, 0), move.rotations);
+                break;
+            case 'x':
+                this.move_any((_x, _y, _z) => true, new THREE.Vector3(1, 0, 0), move.rotations);
+                break;
             case 'U':
                 this.move_any((_x, y, _z) => y === 1, new THREE.Vector3(0, 1, 0), move.rotations);
+                break;
+            case 'u':
+                this.move_any((_x, y, _z) => y !== -1, new THREE.Vector3(0, 1, 0), move.rotations);
+                break;
+            case 'y':
+                this.move_any((_x, _y, _z) => true, new THREE.Vector3(0, 1, 0), move.rotations);
                 break;
             case 'B':
                 this.move_any((_x, _y, z) => z === -1, new THREE.Vector3(0, 0, -1), move.rotations);
                 break;
+            case 'b':
+                this.move_any((_x, _y, z) => z !== 1, new THREE.Vector3(0, 0, -1), move.rotations);
+                break;
             case 'L':
                 this.move_any((x, _y, _z) => x === -1, new THREE.Vector3(-1, 0, 0), move.rotations);
+                break;
+            case 'l':
+                this.move_any((x, _y, _z) => x !== 1, new THREE.Vector3(-1, 0, 0), move.rotations);
                 break;
             case 'M':
                 this.move_any((x, _y, _z) => x === 0, new THREE.Vector3(-1, 0, 0), move.rotations);
                 break;
             case 'D':
                 this.move_any((_x, y, _z) => y === -1, new THREE.Vector3(0, -1, 0), move.rotations);
+                break;
+            case 'd':
+                this.move_any((_x, y, _z) => y !== 1, new THREE.Vector3(0, -1, 0), move.rotations);
                 break;
             case 'E':
                 this.move_any((_x, y, _z) => y === 0, new THREE.Vector3(0, -1, 0), move.rotations);
@@ -167,7 +213,7 @@ export default class Cube {
     n: number = 0;
 
     click() {
-        const alg: Move[] = parseAlg('M2 E2 S2');
+        const alg: Move[] = parseAlg("x R2 F R F' R U2 r' U r U2");
         this.move(alg[this.n % alg.length]);
         this.n += 1;
     }

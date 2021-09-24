@@ -212,9 +212,24 @@ export default class Cube {
 
     n: number = 0;
 
+    animating: boolean = false;
+
     click() {
-        const alg: Move[] = parseAlg("x R2 F R F' R U2 r' U r U2");
-        this.move(alg[this.n % alg.length]);
-        this.n += 1;
+        const alg: Move[] = parseAlg('M2 E2 S2');
+        const animate = () => {
+            this.move(alg[this.n]);
+            if (this.n + 1 < alg.length) {
+                setTimeout(() => animate(), 334);
+                this.n += 1;
+            } else {
+                this.n = 0;
+                this.animating = false;
+            }
+        };
+
+        if (!this.animating) {
+            this.animating = true;
+            animate();
+        }
     }
 }

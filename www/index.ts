@@ -34,16 +34,27 @@ function onWindowResize() {
 }
 window.addEventListener('resize', onWindowResize, false);
 
+let prevFrameTime = performance.now();
 function animate() {
+    const now = performance.now();
+    const delta = (now - prevFrameTime) / 1000;
+    prevFrameTime = now;
+
     requestAnimationFrame(animate);
 
     // cube.rotation.x += 0.01;
     // cube.rotation.y += 0.01;
 
     controls.update();
+    cube.update(delta);
 
     render();
 }
+
+function click() {
+    cube.click();
+}
+renderer.domElement.addEventListener('click', click, false);
 
 animate();
 

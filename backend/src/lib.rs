@@ -24,5 +24,5 @@ pub fn init() -> Universe {
 
 #[wasm_bindgen]
 pub fn greet() {
-    alert("Hello, autocuber!");
+    // alert("Hello, autocuber!");
 }

@@ -164,10 +164,12 @@ export default class Cubelet {
         this.animationTime = 0.0;
 
         this.prevLogicalPosition.copy(this.root.position).divideScalar(this.scale);
+        // this.prevLogicalPosition.copy(this.logicalPosition);
         this.logicalPosition.copy(position);
         this.logicalPosition.round();
 
         this.prevLogicalRotation.copy(this.root.quaternion);
+        // this.prevLogicalRotation.copy(this.logicalRotation);
         this.logicalRotation.copy(rotation);
         roundQuat(this.logicalRotation);
 
@@ -176,7 +178,7 @@ export default class Cubelet {
 
     update(delta: number) {
         this.animationTime += delta;
-        const animSpeed = 0.5;
+        const animSpeed = 3;
         const t = easeInOutSine(
             Math.min(Math.max(this.animationTime, 0.0), 1 / animSpeed) * animSpeed
         );

@@ -96,7 +96,10 @@ export default class Cube {
         axis: THREE.Vector3,
         rotations: number
     ) {
-        const quat = new THREE.Quaternion().setFromAxisAngle(axis, -rotations * (Math.PI / 2));
+        const quat = new THREE.Quaternion().setFromAxisAngle(
+            axis,
+            -Math.sign(rotations) * (Math.PI / 2)
+        );
 
         const updates: [[number, number, number], Cubelet][] = [];
         [-1, 0, 1].forEach((x) => {
@@ -106,12 +109,16 @@ export default class Cube {
                     if (!spec(x, y, z)) return;
 
                     const piece = this.piecesByPosition[pieceIndex(x, y, z)];
-                    const pos = new THREE.Vector3(x, y, z).applyQuaternion(quat).round();
-                    piece.set(
-                        pos,
-                        new THREE.Quaternion().copy(quat).multiply(piece.logicalRotation),
-                        axis
-                    );
+                    const pos = new THREE.Vector3(x, y, z);
+                    for (let i = 0; i < Math.abs(rotations); i += 1) {
+                        pos.applyQuaternion(quat).round();
+                        piece.set(
+                            pos,
+                            new THREE.Quaternion().copy(quat).multiply(piece.logicalRotation),
+                            axis
+                        );
+                        piece.update(0.001);
+                    }
                     updates.push([[pos.x, pos.y, pos.z], piece]);
                 });
             });
@@ -123,6 +130,7 @@ export default class Cube {
     }
 
     move(move: Move) {
+        /* eslint-disable @typescript-eslint/no-unused-vars */
         switch (move.face) {
             case 'F':
                 this.move_any((_x, _y, z) => z === 1, new THREE.Vector3(0, 0, 1), move.rotations);
@@ -144,12 +152,13 @@ export default class Cube {
                 break;
             // no default
         }
+        /* eslint-enable @typescript-eslint/no-unused-vars */
     }
 
     n: number = 0;
 
     click() {
-        const alg: Move[] = parseAlg('R2 F2');
+        const alg: Move[] = parseAlg("F R U' R' U' R U R' F' R U R' U' R' F R F'");
         this.move(alg[this.n % alg.length]);
         this.n += 1;
     }

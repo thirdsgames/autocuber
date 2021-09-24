@@ -223,7 +223,10 @@ export default class Cube {
                 this.n += 1;
             } else {
                 this.n = 0;
-                this.animating = false;
+                setTimeout(() => {
+                    // Wait for the last move's animation to finish.
+                    this.animating = false;
+                }, 334);
             }
         };
 

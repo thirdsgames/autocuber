@@ -35,7 +35,7 @@ function indexToPiece(n: number): [number, number, number] {
 const scale = 0.3;
 const faceScale = scale * 0.96;
 
-type Face = 'F' | 'R' | 'U' | 'B' | 'L' | 'D';
+type Face = 'F' | 'R' | 'U' | 'B' | 'L' | 'D' | 'M' | 'E' | 'S';
 interface Move {
     face: Face;
     rotations: number;
@@ -135,6 +135,9 @@ export default class Cube {
             case 'F':
                 this.move_any((_x, _y, z) => z === 1, new THREE.Vector3(0, 0, 1), move.rotations);
                 break;
+            case 'S':
+                this.move_any((_x, _y, z) => z === 0, new THREE.Vector3(0, 0, 1), move.rotations);
+                break;
             case 'R':
                 this.move_any((x, _y, _z) => x === 1, new THREE.Vector3(1, 0, 0), move.rotations);
                 break;
@@ -147,8 +150,14 @@ export default class Cube {
             case 'L':
                 this.move_any((x, _y, _z) => x === -1, new THREE.Vector3(-1, 0, 0), move.rotations);
                 break;
+            case 'M':
+                this.move_any((x, _y, _z) => x === 0, new THREE.Vector3(-1, 0, 0), move.rotations);
+                break;
             case 'D':
                 this.move_any((_x, y, _z) => y === -1, new THREE.Vector3(0, -1, 0), move.rotations);
+                break;
+            case 'E':
+                this.move_any((_x, y, _z) => y === 0, new THREE.Vector3(0, -1, 0), move.rotations);
                 break;
             // no default
         }
@@ -158,7 +167,7 @@ export default class Cube {
     n: number = 0;
 
     click() {
-        const alg: Move[] = parseAlg("F R U' R' U' R U R' F' R U R' U' R' F R F'");
+        const alg: Move[] = parseAlg('M2 E2 S2');
         this.move(alg[this.n % alg.length]);
         this.n += 1;
     }

@@ -103,8 +103,8 @@ canvas {
     z-index: -1000;
 }
 
-#move {
-    float: left;
+#move,
+#history {
     margin: 10px;
     padding: 5px;
     background: #090909;
@@ -130,6 +130,17 @@ canvas {
         &:active {
             background: #222;
         }
+    }
+}
+
+#move {
+    float: left;
+}
+
+#history {
+    float: right;
+    h1 {
+        text-align: right;
     }
 }
 

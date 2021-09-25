@@ -55,51 +55,66 @@ function animate() {
 
 animate();
 
-const move = document.getElementById('move');
-const moveHeader = document.createElement('h1');
-moveHeader.innerText = 'Move';
-move.appendChild(moveHeader);
-const table = document.createElement('table');
+// Create the move div
+{
+    const move = document.getElementById('move');
+    const moveHeader = document.createElement('h1');
+    moveHeader.innerText = 'Move';
+    move.appendChild(moveHeader);
+    const table = document.createElement('table');
 
-const faces: Face[] = ['F', 'R', 'U', 'B', 'L', 'D', 'M', 'E', 'S'];
-faces.forEach((face) => {
-    const row = document.createElement('tr');
+    const faces: Face[] = ['F', 'R', 'U', 'B', 'L', 'D', 'M', 'E', 'S'];
+    faces.forEach((face) => {
+        const row = document.createElement('tr');
 
-    const types: [string, number][] = [
-        ['', 1],
-        ["'", -1],
-        ['2', 2],
-        ['w', 1],
-        ["w'", -1],
-        ['w2', 2],
-    ];
-    types.forEach(([name, rotations]) => {
-        let innerText = face + name;
-        let realFace = face;
-        if (['M', 'E', 'S'].includes(face)) {
-            // Replace Mw, Ew, Sw with x, y, z rotations.
+        const types: [string, number][] = [
+            ['', 1],
+            ["'", -1],
+            ['2', 2],
+            ['w', 1],
+            ["w'", -1],
+            ['w2', 2],
+        ];
+        types.forEach(([name, rotations]) => {
+            let innerText = face + name;
+            let realFace = face;
             if (name.includes('w')) {
-                realFace = face.replace('M', 'x').replace('E', 'y').replace('S', 'z') as Face;
-                innerText = realFace + name.substr(1);
+                if (['M', 'E', 'S'].includes(face)) {
+                    // Replace Mw, Ew, Sw with x, y, z rotations.
+                    realFace = face.replace('M', 'x').replace('E', 'y').replace('S', 'z') as Face;
+                    innerText = realFace + name.substr(1);
+                } else {
+                    // Replace Fw with f, etc.
+                    realFace = face.toLowerCase() as Face;
+                    innerText = realFace + name.substr(1);
+                }
             }
-        }
 
-        const td = document.createElement('td');
-        const button = document.createElement('button');
-        button.addEventListener('click', (_ev) => {
-            if (!cube.animating) {
-                cube.move({ face: realFace, rotations });
-            }
+            const td = document.createElement('td');
+            const button = document.createElement('button');
+            button.addEventListener('click', (_ev) => {
+                if (!cube.animating) {
+                    cube.move({ face: realFace, rotations });
+                }
+            });
+            button.innerText = innerText;
+            td.appendChild(button);
+            row.appendChild(td);
         });
-        button.innerText = innerText;
-        td.appendChild(button);
-        row.appendChild(td);
+
+        table.appendChild(row);
     });
 
-    table.appendChild(row);
-});
+    move.appendChild(table);
+}
 
-move.appendChild(table);
+// Create the history div
+{
+    const history = document.getElementById('history');
+    const historyHeader = document.createElement('h1');
+    historyHeader.innerText = 'History';
+    history.appendChild(historyHeader);
+}
 
 // WASM
 

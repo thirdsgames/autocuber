@@ -1,4 +1,4 @@
-use std::{fmt::Display, ops::Index};
+use std::{fmt::Display, ops::Index, str::FromStr};
 
 /// Represents a *valid* (i.e. has all of the required pieces, not necessarily solvable) NxN cube.
 /// Not `Copy` primarily as a lint.
@@ -55,6 +55,22 @@ pub enum FaceType {
 }
 use FaceType::*;
 
+impl FromStr for FaceType {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "F" => Ok(F),
+            "R" => Ok(R),
+            "U" => Ok(U),
+            "B" => Ok(B),
+            "L" => Ok(L),
+            "D" => Ok(D),
+            _ => Err(()),
+        }
+    }
+}
+
 /// These impls are safe since colour and face type are `repr(u8)` and have the same possible discriminants.
 impl From<FaceType> for Colour {
     fn from(face: FaceType) -> Self {
@@ -82,6 +98,47 @@ pub enum Move {
         /// How many slices to turn?
         depth: usize,
     },
+}
+
+impl FromStr for Move {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut chars = s.chars();
+        let face_char = chars.next().ok_or(())?;
+        let face: FaceType = face_char.to_uppercase().collect::<String>().parse()?;
+        let mut depth = if face_char.is_lowercase() { 2 } else { 1 };
+        let mut rotation_type = RotationType::Normal;
+        for modification in chars {
+            match modification {
+                'w' => depth = 2,
+                '2' => rotation_type = RotationType::Double,
+                '\'' => rotation_type = RotationType::Inverse,
+                _ => return Err(()),
+            }
+        }
+        Ok(Self::Face {
+            face,
+            rotation_type,
+            depth,
+        })
+    }
+}
+
+pub struct Algorithm {
+    pub moves: Vec<Move>,
+}
+
+impl FromStr for Algorithm {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut result = Self { moves: Vec::new() };
+        for value in s.split(' ') {
+            result.moves.push(value.parse()?);
+        }
+        Ok(result)
+    }
 }
 
 impl<const N: usize> Cube<N> {

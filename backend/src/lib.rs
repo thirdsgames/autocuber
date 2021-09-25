@@ -31,19 +31,9 @@ pub fn init() -> Universe {
 pub fn greet() {
     // alert("Hello, autocuber!");
     let mut cube = Cube::<3>::new();
-    for _ in 0..3 {
-        cube = cube.perform(utils::dbg2!(Move::Face {
-            face: FaceType::R,
-            rotation_type: RotationType::Double,
-            depth: 1,
-        }));
-        utils::log!("cube:\n{}", cube);
-        cube = cube.perform(utils::dbg2!(Move::Face {
-            face: FaceType::F,
-            rotation_type: RotationType::Double,
-            depth: 1,
-        }));
-        utils::log!("cube:\n{}", cube);
+    let alg = "F' R F' R' F' R' F' R F R F2".parse::<Algorithm>().unwrap();
+    for mv in alg.moves {
+        cube = cube.perform(mv);
     }
-    //utils::log!("cube:\n{}", cube);
+    utils::log!("cube:\n{}", cube);
 }

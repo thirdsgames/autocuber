@@ -61,7 +61,7 @@ moveHeader.innerText = 'Move';
 move.appendChild(moveHeader);
 const table = document.createElement('table');
 
-const faces: Face[] = ['F', 'R', 'U', 'B', 'L', 'D'];
+const faces: Face[] = ['F', 'R', 'U', 'B', 'L', 'D', 'M', 'E', 'S'];
 faces.forEach((face) => {
     const row = document.createElement('tr');
 
@@ -69,16 +69,29 @@ faces.forEach((face) => {
         ['', 1],
         ["'", -1],
         ['2', 2],
+        ['w', 1],
+        ["w'", -1],
+        ['w2', 2],
     ];
     types.forEach(([name, rotations]) => {
+        let innerText = face + name;
+        let realFace = face;
+        if (['M', 'E', 'S'].includes(face)) {
+            // Replace Mw, Ew, Sw with x, y, z rotations.
+            if (name.includes('w')) {
+                realFace = face.replace('M', 'x').replace('E', 'y').replace('S', 'z') as Face;
+                innerText = realFace + name.substr(1);
+            }
+        }
+
         const td = document.createElement('td');
         const button = document.createElement('button');
         button.addEventListener('click', (_ev) => {
             if (!cube.animating) {
-                cube.move({ face, rotations });
+                cube.move({ face: realFace, rotations });
             }
         });
-        button.innerText = face + name;
+        button.innerText = innerText;
         td.appendChild(button);
         row.appendChild(td);
     });

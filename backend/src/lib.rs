@@ -1,3 +1,4 @@
+mod cube;
 mod utils;
 
 use wasm_bindgen::prelude::*;
@@ -25,4 +26,6 @@ pub fn init() -> Universe {
 #[wasm_bindgen]
 pub fn greet() {
     // alert("Hello, autocuber!");
+    let cube = cube::Cube::<3>::new();
+    utils::log!("cube:\n{}", cube);
 }

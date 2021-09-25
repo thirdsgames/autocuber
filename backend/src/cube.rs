@@ -95,8 +95,12 @@ pub enum Move {
     Face {
         face: FaceType,
         rotation_type: RotationType,
-        /// How many slices to turn?
-        depth: usize,
+        // We turn all slices from `start_depth` to `end_depth`.
+        // If `start_depth = 0, end_depth = 1`, this is a normal turn.
+        // If `start_depth = 1, end_depth = 2`, this is a slice turn.
+        // If `start_depth = 0, end_depth = 2`, this is a wide turn.
+        start_depth: usize,
+        end_depth: usize,
     },
 }
 
@@ -106,12 +110,25 @@ impl FromStr for Move {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut chars = s.chars();
         let face_char = chars.next().ok_or(())?;
-        let face: FaceType = face_char.to_uppercase().collect::<String>().parse()?;
-        let mut depth = if face_char.is_lowercase() { 2 } else { 1 };
+        let turn_direction = match face_char {
+            'M' => 'L',
+            'E' => 'D',
+            'S' => 'F',
+            x => x,
+        };
+        let face: FaceType = turn_direction.to_uppercase().collect::<String>().parse()?;
+        let mut end_depth = if face_char.is_lowercase() { 2 } else { 1 };
+        let start_depth = match face_char {
+            'M' | 'E' | 'S' => {
+                end_depth = 2;
+                1
+            }
+            _ => 0,
+        };
         let mut rotation_type = RotationType::Normal;
         for modification in chars {
             match modification {
-                'w' => depth = 2,
+                'w' => end_depth = 2,
                 '2' => rotation_type = RotationType::Double,
                 '\'' => rotation_type = RotationType::Inverse,
                 _ => return Err(()),
@@ -120,7 +137,8 @@ impl FromStr for Move {
         Ok(Self::Face {
             face,
             rotation_type,
-            depth,
+            start_depth,
+            end_depth,
         })
     }
 }
@@ -165,21 +183,38 @@ impl<const N: usize> Cube<N> {
     pub fn perform(self, mv: Move) -> Self {
         // Heavily optimised move-performing logic.
         macro_rules! face {
-            ( $face:ident ) => {
+            ( $start_depth:ident, $end_depth:ident, ($($x:tt)*) ) => {
+                // Unbox parentheses.
+                face!($start_depth, $end_depth, $($x)*)
+            };
+            ( $start_depth:ident, $end_depth:ident, $face:ident ) => {
                 self.face($face).clone()
             };
-            ( $face:ident cw ) => {
-                self.face($face).rotate_cw()
+            ( $start_depth:ident, $end_depth:ident, $face:ident cw ) => {
+                if $start_depth == 0 {
+                    self.face($face).rotate_cw()
+                } else {
+                    self.face($face).clone()
+                }
             };
-            ( $face:ident 2 ) => {
-                self.face($face).rotate_double()
+            ( $start_depth:ident, $end_depth:ident, $face:ident 2 ) => {
+                if $start_depth == 0 {
+                    self.face($face).rotate_double()
+                } else {
+                    self.face($face).clone()
+                }
             };
-            ( $face:ident ccw ) => {
-                self.face($face).rotate_ccw()
+            ( $start_depth:ident, $end_depth:ident, $face:ident ccw ) => {
+                if $start_depth == 0 {
+                    self.face($face).rotate_ccw()
+                } else {
+                    self.face($face).clone()
+                }
             };
-            ( $face:ident $depth:ident $target:ident $source_face:ident $source_type:ident ) => {
+            ( $start_depth:ident, $end_depth:ident, $face:ident $target:ident $source_face:ident $source_type:ident ) => {
                 self.face($face).overwrite_from(
-                    $depth,
+                    $start_depth,
+                    $end_depth,
                     $target,
                     self.face($source_face),
                     $source_type,
@@ -187,41 +222,21 @@ impl<const N: usize> Cube<N> {
             };
         }
 
-        macro_rules! face_depth {
-            ( $depth:ident, ($($x:tt)*) ) => {
-                // Unbox parentheses.
-                face_depth!($depth, $($x)*)
-            };
-            ( $depth:ident, $face:ident ) => {
-                face!($face)
-            };
-            ( $depth:ident, $face:ident cw ) => {
-                face!($face cw)
-            };
-            ( $depth:ident, $face:ident 2 ) => {
-                face!($face 2)
-            };
-            ( $depth:ident, $face:ident ccw ) => {
-                face!($face ccw)
-            };
-            ( $depth:ident, $face:ident $target:ident $source_face:ident $source_type:ident ) => {
-                face!($face $depth $target $source_face $source_type)
-            };
-        }
-
         macro_rules! perform {
-            ( $depth:ident, $($x:tt)* ) => {
-                [$(face_depth!($depth, $x),)*]
+            ( $start_depth:ident, $end_depth:ident, $($x:tt)* ) => {
+                [$(face!($start_depth, $end_depth, $x),)*]
             };
         }
 
         Self {
             faces: match mv {
+                // F
                 Move::Face {
                     face: F,
                     rotation_type: RotationType::Normal,
-                    depth,
-                } => perform!(depth,
+                    start_depth,
+                    end_depth,
+                } => perform!(start_depth, end_depth,
                     // Read this:
                     // "F clockwise"
                     (F cw)
@@ -237,8 +252,9 @@ impl<const N: usize> Cube<N> {
                 Move::Face {
                     face: F,
                     rotation_type: RotationType::Double,
-                    depth,
-                } => perform!(depth,
+                    start_depth,
+                    end_depth,
+                } => perform!(start_depth, end_depth,
                     (F 2)
                     (R Left L Right)
                     (U Bottom D Top)
@@ -249,8 +265,9 @@ impl<const N: usize> Cube<N> {
                 Move::Face {
                     face: F,
                     rotation_type: RotationType::Inverse,
-                    depth,
-                } => perform!(depth,
+                    start_depth,
+                    end_depth,
+                } => perform!(start_depth, end_depth,
                     (F ccw)
                     (R Left D Top)
                     (U Bottom R Left)
@@ -258,11 +275,13 @@ impl<const N: usize> Cube<N> {
                     (L Right U Bottom)
                     (D Top L Right)
                 ),
+                // R
                 Move::Face {
                     face: R,
                     rotation_type: RotationType::Normal,
-                    depth,
-                } => perform!(depth,
+                    start_depth,
+                    end_depth,
+                } => perform!(start_depth, end_depth,
                     (F Right D Right)
                     (R cw)
                     (U Right F Right)
@@ -273,8 +292,9 @@ impl<const N: usize> Cube<N> {
                 Move::Face {
                     face: R,
                     rotation_type: RotationType::Double,
-                    depth,
-                } => perform!(depth,
+                    start_depth,
+                    end_depth,
+                } => perform!(start_depth, end_depth,
                     (F Right B Left)
                     (R 2)
                     (U Right D Right)
@@ -285,8 +305,9 @@ impl<const N: usize> Cube<N> {
                 Move::Face {
                     face: R,
                     rotation_type: RotationType::Inverse,
-                    depth,
-                } => perform!(depth,
+                    start_depth,
+                    end_depth,
+                } => perform!(start_depth, end_depth,
                     (F Right U Right)
                     (R ccw)
                     (U Right B Left)
@@ -422,22 +443,10 @@ impl<const N: usize> Face<N> {
         self.rows[row] = data;
     }
 
-    fn overwrite_row(&self, row: usize, data: [Colour; N]) -> Self {
-        let mut face = self.clone();
-        face.set_row(row, data);
-        face
-    }
-
     fn set_col(&mut self, col: usize, data: [Colour; N]) {
         for i in 0..N {
             self.rows[i][col] = data[i];
         }
-    }
-
-    fn overwrite_col(&self, col: usize, data: [Colour; N]) -> Self {
-        let mut face = self.clone();
-        face.set_col(col, data);
-        face
     }
 
     /// Read this function:
@@ -445,7 +454,8 @@ impl<const N: usize> Face<N> {
     #[inline(always)]
     fn overwrite_from(
         &self,
-        depth: usize,
+        start_depth: usize,
+        end_depth: usize,
         target_type: FaceSegment,
         source: &Face<N>,
         source_type: FaceSegment,
@@ -463,7 +473,7 @@ impl<const N: usize> Face<N> {
 
         let mut face = self.clone();
         // i counts from left to right.
-        for i in 0..depth {
+        for i in start_depth..end_depth {
             // j counts from right to left.
             let j = N - 1 - i;
             let source_row = match (source_type, reverse_direction) {

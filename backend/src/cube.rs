@@ -18,6 +18,8 @@ pub struct Face<const N: usize> {
 /// The colour of a face on an NxN cube.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
+// Colours are often not constructed directly, but converted into from a face type.
+#[allow(dead_code)]
 pub enum Colour {
     Green,
     Red,
@@ -71,6 +73,29 @@ impl FromStr for FaceType {
     }
 }
 
+/// An axis on a cube.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u8)]
+pub enum Axis {
+    FB,
+    RL,
+    UD,
+}
+use Axis::*;
+
+impl FromStr for Axis {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "FB" => Ok(FB),
+            "RL" => Ok(RL),
+            "UD" => Ok(UD),
+            _ => Err(()),
+        }
+    }
+}
+
 /// These impls are safe since colour and face type are `repr(u8)` and have the same possible discriminants.
 impl From<FaceType> for Colour {
     fn from(face: FaceType) -> Self {
@@ -90,15 +115,26 @@ pub enum RotationType {
     Inverse,
 }
 
+impl RotationType {
+    pub fn inverse(self) -> RotationType {
+        match self {
+            RotationType::Normal => RotationType::Inverse,
+            RotationType::Double => RotationType::Double,
+            RotationType::Inverse => RotationType::Normal,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum Move {
     Face {
-        face: FaceType,
+        axis: Axis,
         rotation_type: RotationType,
         // We turn all slices from `start_depth` to `end_depth`.
         // If `start_depth = 0, end_depth = 1`, this is a normal turn.
         // If `start_depth = 1, end_depth = 2`, this is a slice turn.
         // If `start_depth = 0, end_depth = 2`, this is a wide turn.
+        // If `start_depth = 2, end_depth = 3`, this is an inverse turn on the opposite face.
         start_depth: usize,
         end_depth: usize,
     },
@@ -108,6 +144,7 @@ impl FromStr for Move {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        const N: usize = 3;
         let mut chars = s.chars();
         let face_char = chars.next().ok_or(())?;
         let turn_direction = match face_char {
@@ -118,7 +155,7 @@ impl FromStr for Move {
         };
         let face: FaceType = turn_direction.to_uppercase().collect::<String>().parse()?;
         let mut end_depth = if face_char.is_lowercase() { 2 } else { 1 };
-        let start_depth = match face_char {
+        let mut start_depth = match face_char {
             'M' | 'E' | 'S' => {
                 end_depth = 2;
                 1
@@ -134,8 +171,34 @@ impl FromStr for Move {
                 _ => return Err(()),
             }
         }
+        let axis = match face {
+            F => FB,
+            R => RL,
+            U => UD,
+            B => {
+                rotation_type = rotation_type.inverse();
+                let d = start_depth;
+                start_depth = N - end_depth;
+                end_depth = N - d;
+                FB
+            }
+            L => {
+                rotation_type = rotation_type.inverse();
+                let d = start_depth;
+                start_depth = N - end_depth;
+                end_depth = N - d;
+                RL
+            }
+            D => {
+                rotation_type = rotation_type.inverse();
+                let d = start_depth;
+                start_depth = N - end_depth;
+                end_depth = N - d;
+                UD
+            }
+        };
         Ok(Self::Face {
-            face,
+            axis,
             rotation_type,
             start_depth,
             end_depth,
@@ -211,6 +274,27 @@ impl<const N: usize> Cube<N> {
                     self.face($face).clone()
                 }
             };
+            ( $start_depth:ident, $end_depth:ident, $face:ident b cw ) => {
+                if $end_depth == N {
+                    self.face($face).rotate_cw()
+                } else {
+                    self.face($face).clone()
+                }
+            };
+            ( $start_depth:ident, $end_depth:ident, $face:ident b 2 ) => {
+                if $end_depth == N {
+                    self.face($face).rotate_double()
+                } else {
+                    self.face($face).clone()
+                }
+            };
+            ( $start_depth:ident, $end_depth:ident, $face:ident b ccw ) => {
+                if $end_depth == N {
+                    self.face($face).rotate_ccw()
+                } else {
+                    self.face($face).clone()
+                }
+            };
             ( $start_depth:ident, $end_depth:ident, $face:ident $target:ident $source_face:ident $source_type:ident ) => {
                 self.face($face).overwrite_from(
                     $start_depth,
@@ -230,27 +314,27 @@ impl<const N: usize> Cube<N> {
 
         Self {
             faces: match mv {
-                // F
+                // FB turns
                 Move::Face {
-                    face: F,
+                    axis: FB,
                     rotation_type: RotationType::Normal,
                     start_depth,
                     end_depth,
                 } => perform!(start_depth, end_depth,
                     // Read this:
-                    // "F clockwise"
+                    // "F is clockwise, but only if the front face is modified"
                     (F cw)
                     // "R left comes from U bottom"
                     // (the left part of R's face is copied from the bottom part of U's face)
                     (R Left U Bottom)
                     (U Bottom L Right)
-                    // "B is unchanged"
-                    (B)
+                    // "B is clockwise, but only if the back face is modified" (back face signalled by the `b` character)
+                    (B b cw)
                     (L Right D Top)
                     (D Top R Left)
                 ),
                 Move::Face {
-                    face: F,
+                    axis: FB,
                     rotation_type: RotationType::Double,
                     start_depth,
                     end_depth,
@@ -258,12 +342,12 @@ impl<const N: usize> Cube<N> {
                     (F 2)
                     (R Left L Right)
                     (U Bottom D Top)
-                    (B)
+                    (B b 2)
                     (L Right R Left)
                     (D Top U Bottom)
                 ),
                 Move::Face {
-                    face: F,
+                    axis: FB,
                     rotation_type: RotationType::Inverse,
                     start_depth,
                     end_depth,
@@ -271,13 +355,13 @@ impl<const N: usize> Cube<N> {
                     (F ccw)
                     (R Left D Top)
                     (U Bottom R Left)
-                    (B)
+                    (B b ccw)
                     (L Right U Bottom)
                     (D Top L Right)
                 ),
-                // R
+                // RL turns
                 Move::Face {
-                    face: R,
+                    axis: RL,
                     rotation_type: RotationType::Normal,
                     start_depth,
                     end_depth,
@@ -286,11 +370,11 @@ impl<const N: usize> Cube<N> {
                     (R cw)
                     (U Right F Right)
                     (B Left U Right)
-                    (L)
+                    (L b cw)
                     (D Right B Left)
                 ),
                 Move::Face {
-                    face: R,
+                    axis: RL,
                     rotation_type: RotationType::Double,
                     start_depth,
                     end_depth,
@@ -299,11 +383,11 @@ impl<const N: usize> Cube<N> {
                     (R 2)
                     (U Right D Right)
                     (B Left F Right)
-                    (L)
+                    (L b 2)
                     (D Right U Right)
                 ),
                 Move::Face {
-                    face: R,
+                    axis: RL,
                     rotation_type: RotationType::Inverse,
                     start_depth,
                     end_depth,
@@ -312,10 +396,49 @@ impl<const N: usize> Cube<N> {
                     (R ccw)
                     (U Right B Left)
                     (B Left D Right)
-                    (L)
+                    (L b ccw)
                     (D Right F Right)
                 ),
-                _ => panic!("move {:#?} not recognised", mv),
+                // UD turns
+                Move::Face {
+                    axis: UD,
+                    rotation_type: RotationType::Normal,
+                    start_depth,
+                    end_depth,
+                } => perform!(start_depth, end_depth,
+                    (F Top R Top)
+                    (R Top B Top)
+                    (U cw)
+                    (B Top L Top)
+                    (L Top F Top)
+                    (D b cw)
+                ),
+                Move::Face {
+                    axis: UD,
+                    rotation_type: RotationType::Double,
+                    start_depth,
+                    end_depth,
+                } => perform!(start_depth, end_depth,
+                    (F Top B Top)
+                    (R Top L Top)
+                    (U 2)
+                    (B Top F Top)
+                    (L Top R Top)
+                    (D b 2)
+                ),
+                Move::Face {
+                    axis: UD,
+                    rotation_type: RotationType::Inverse,
+                    start_depth,
+                    end_depth,
+                } => perform!(start_depth, end_depth,
+                    (F Top L Top)
+                    (R Top F Top)
+                    (U ccw)
+                    (B Top R Top)
+                    (L Top B Top)
+                    (D b ccw)
+                ),
             },
         }
     }
@@ -374,6 +497,10 @@ enum FaceSegment {
 }
 use FaceSegment::*;
 
+// The range is there as an optimisation for the compiler, since we
+// know the size of each array at compile time. It also helps unify
+// code style across each of the different functions.
+#[allow(clippy::needless_range_loop)]
 impl<const N: usize> Face<N> {
     pub fn new(ty: FaceType) -> Self {
         Self {

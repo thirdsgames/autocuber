@@ -31,7 +31,7 @@ pub fn init() -> Universe {
 pub fn greet() {
     // alert("Hello, autocuber!");
     let mut cube = Cube::<3>::new();
-    let alg = "S R S R".parse::<Algorithm>().unwrap();
+    let alg = "M2 U2 M2 U2".parse::<Algorithm>().unwrap();
     for mv in alg.moves {
         cube = cube.perform(utils::dbg2!(mv));
         utils::log!("cube:\n{}", cube);

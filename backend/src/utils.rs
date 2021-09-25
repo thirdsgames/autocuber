@@ -6,6 +6,18 @@ macro_rules! log {
 }
 pub(crate) use log;
 
+macro_rules! dbg2 {
+    ( $e:expr ) => {
+        match $e {
+            e => {
+                web_sys::console::log_1(&format!("{:#?}", e).into());
+                e
+            }
+        }
+    };
+}
+pub(crate) use dbg2;
+
 pub fn set_panic_hook() {
     // When the `console_error_panic_hook` feature is enabled, we can call the
     // `set_panic_hook` function at least once during initialization, and then

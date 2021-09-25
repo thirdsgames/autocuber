@@ -1,7 +1,11 @@
+#![feature(maybe_uninit_uninit_array)]
+
 mod cube;
 mod utils;
 
 use wasm_bindgen::prelude::*;
+
+use crate::cube::*;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -26,6 +30,20 @@ pub fn init() -> Universe {
 #[wasm_bindgen]
 pub fn greet() {
     // alert("Hello, autocuber!");
-    let cube = cube::Cube::<3>::new();
-    utils::log!("cube:\n{}", cube);
+    let mut cube = Cube::<3>::new();
+    for _ in 0..3 {
+        cube = cube.perform(utils::dbg2!(Move::Face {
+            face: FaceType::R,
+            rotation_type: RotationType::Double,
+            depth: 1,
+        }));
+        utils::log!("cube:\n{}", cube);
+        cube = cube.perform(utils::dbg2!(Move::Face {
+            face: FaceType::F,
+            rotation_type: RotationType::Double,
+            depth: 1,
+        }));
+        utils::log!("cube:\n{}", cube);
+    }
+    //utils::log!("cube:\n{}", cube);
 }

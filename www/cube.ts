@@ -36,7 +36,7 @@ function indexToPiece(n: number): [number, number, number] {
 const scale = 0.3;
 const faceScale = scale * 0.96;
 
-type Face =
+export type Face =
     | 'F'
     | 'f'
     | 'R'
@@ -149,7 +149,6 @@ export default class Cube {
     }
 
     move(move: Move) {
-        /* eslint-disable @typescript-eslint/no-unused-vars */
         switch (move.face) {
             case 'F':
                 this.move_any((_x, _y, z) => z === 1, new THREE.Vector3(0, 0, 1), move.rotations);
@@ -207,14 +206,13 @@ export default class Cube {
                 break;
             // no default
         }
-        /* eslint-enable @typescript-eslint/no-unused-vars */
     }
 
     n: number = 0;
 
     animating: boolean = false;
 
-    click() {
+    performAlg() {
         const alg: Move[] = parseAlg('M2 E2 S2');
         const animate = () => {
             this.move(alg[this.n]);

@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import * as wasm from 'autocuber';
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import Cube from './cube';
+import Cube, { Face } from './cube';
+
+// UI initialisation
 
 const scene = new THREE.Scene();
 
@@ -51,12 +53,42 @@ function animate() {
     render();
 }
 
-function click() {
-    cube.click();
-}
-renderer.domElement.addEventListener('click', click, false);
-
 animate();
+
+const move = document.getElementById('move');
+const moveHeader = document.createElement('h1');
+moveHeader.innerText = 'Move';
+move.appendChild(moveHeader);
+const table = document.createElement('table');
+
+const faces: Face[] = ['F', 'R', 'U', 'B', 'L', 'D'];
+faces.forEach((face) => {
+    const row = document.createElement('tr');
+
+    const types: [string, number][] = [
+        ['', 1],
+        ["'", -1],
+        ['2', 2],
+    ];
+    types.forEach(([name, rotations]) => {
+        const td = document.createElement('td');
+        const button = document.createElement('button');
+        button.addEventListener('click', (_ev) => {
+            if (!cube.animating) {
+                cube.move({ face, rotations });
+            }
+        });
+        button.innerText = face + name;
+        td.appendChild(button);
+        row.appendChild(td);
+    });
+
+    table.appendChild(row);
+});
+
+move.appendChild(table);
+
+// WASM
 
 const universe = wasm.init();
 console.log(universe);

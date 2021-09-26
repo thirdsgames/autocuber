@@ -111,6 +111,15 @@ animate();
     const historyHeader = document.createElement('h1');
     historyHeader.innerText = 'History';
     history.appendChild(historyHeader);
+
+    const button = document.createElement('button');
+    button.addEventListener('click', (_ev) => {
+        if (!cube.animating) {
+            cube.reset();
+        }
+    });
+    button.innerText = 'Reset';
+    history.appendChild(button);
 }
 
 // WASM

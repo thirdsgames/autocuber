@@ -10,7 +10,6 @@ function mod(n: number, m: number): number {
     return ((n % m) + m) % m;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function indexToPiece(n: number): [number, number, number] {
     let n2 = n;
 
@@ -208,24 +207,23 @@ export default class Cube {
         }
     }
 
-    n: number = 0;
-
     animating: boolean = false;
 
-    performAlg() {
-        const alg: Move[] = parseAlg('M2 E2 S2');
+    reset() {
         const animate = () => {
-            this.move(alg[this.n]);
-            if (this.n + 1 < alg.length) {
-                setTimeout(() => animate(), 334);
-                this.n += 1;
-            } else {
-                this.n = 0;
-                setTimeout(() => {
-                    // Wait for the last move's animation to finish.
-                    this.animating = false;
-                }, 334);
-            }
+            Object.entries(this.pieces).forEach(([position, cubelet]) => {
+                const [x, y, z] = indexToPiece(parseInt(position, 10));
+                cubelet.set(
+                    new THREE.Vector3(x, y, z),
+                    new THREE.Quaternion(),
+                    new THREE.Vector3()
+                );
+            });
+            Object.assign(this.piecesByPosition, this.pieces);
+            setTimeout(() => {
+                // Wait for the last move's animation to finish.
+                this.animating = false;
+            }, 334);
         };
 
         if (!this.animating) {

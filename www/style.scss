@@ -103,6 +103,21 @@ canvas {
     z-index: -1000;
 }
 
+button {
+    width: 100%;
+    background: #333;
+    border-style: none;
+    color: #ddd;
+
+    &:hover {
+        background: #444;
+    }
+
+    &:active {
+        background: #222;
+    }
+}
+
 #move,
 #history {
     margin: 10px;
@@ -115,21 +130,6 @@ canvas {
 
     h1 {
         margin: 5px;
-    }
-
-    button {
-        width: 100%;
-        background: #333;
-        border-style: none;
-        color: #ddd;
-
-        &:hover {
-            background: #444;
-        }
-
-        &:active {
-            background: #222;
-        }
     }
 }
 

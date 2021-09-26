@@ -111,7 +111,7 @@ impl From<Colour> for FaceType {
 }
 
 #[wasm_bindgen]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RotationType {
     Normal,
     Double,
@@ -169,7 +169,13 @@ impl FromStr for Move {
             match modification {
                 'w' => end_depth = 2,
                 '2' => rotation_type = RotationType::Double,
-                '\'' => rotation_type = RotationType::Inverse,
+                '\'' => {
+                    // Sometimes, algorithms have things like U2', but we don't care
+                    // about the direction of double turns.
+                    if rotation_type != RotationType::Double {
+                        rotation_type = RotationType::Inverse
+                    }
+                }
                 _ => return Err(()),
             }
         }

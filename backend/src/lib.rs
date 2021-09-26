@@ -41,7 +41,7 @@ pub fn greet() {
 /// Generate some algorithm that we can perform on the cube.
 #[wasm_bindgen]
 pub fn gen_alg() -> AlgorithmConv {
-    "R' U R' U' R' U' R' U R U R2"
+    "R' U L U' R U2' L' U L U2 L'"
         .parse::<Algorithm>()
         .unwrap()
         .into()

@@ -111,32 +111,16 @@ export default class Cube {
     move(move: Move) {
         const axis = move.axis as Axis;
 
-        const invertRotation =
-            (move.start_depth > 0 && move.axis !== Axis.FB) || move.start_depth > 1;
-
         let rotations;
         switch (move.rotation_type) {
             case RotationType.Normal:
-                if (invertRotation) {
-                    // If we're starting from the opposite face, rotations are inverted.
-                    rotations = -1;
-                } else {
-                    rotations = 1;
-                }
+                rotations = 1;
                 break;
             case RotationType.Inverse:
-                if (invertRotation) {
-                    rotations = 1;
-                } else {
-                    rotations = -1;
-                }
+                rotations = -1;
                 break;
             case RotationType.Double:
-                if (invertRotation) {
-                    rotations = -2;
-                } else {
-                    rotations = 2;
-                }
+                rotations = 2;
                 break;
             // no default
         }

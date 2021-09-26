@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Axis, Move, RotationType } from 'autocuber';
 
 import Cubelet from './cubelet';
 
@@ -34,46 +35,6 @@ function indexToPiece(n: number): [number, number, number] {
 
 const scale = 0.3;
 const faceScale = scale * 0.96;
-
-export type Face =
-    | 'F'
-    | 'f'
-    | 'R'
-    | 'r'
-    | 'U'
-    | 'u'
-    | 'B'
-    | 'b'
-    | 'L'
-    | 'l'
-    | 'D'
-    | 'd'
-    | 'M'
-    | 'E'
-    | 'S'
-    | 'x'
-    | 'y'
-    | 'z';
-interface Move {
-    face: Face;
-    rotations: number;
-}
-
-function parseMove(s: string): Move {
-    const move = { face: s[0] as Face, rotations: 1 };
-    for (let i = 0; i < s.length; i += 1) {
-        if (s[i] === "'") {
-            move.rotations *= -1;
-        } else if (s[i] === '2') {
-            move.rotations *= 2;
-        }
-    }
-    return move;
-}
-
-function parseAlg(s: string): Move[] {
-    return s.split(' ').map(parseMove);
-}
 
 export default class Cube {
     pieces: Record<number, Cubelet> = {};
@@ -148,60 +109,68 @@ export default class Cube {
     }
 
     move(move: Move) {
-        switch (move.face) {
-            case 'F':
-                this.move_any((_x, _y, z) => z === 1, new THREE.Vector3(0, 0, 1), move.rotations);
+        const axis = move.axis as Axis;
+
+        const invertRotation =
+            (move.start_depth > 0 && move.axis !== Axis.FB) || move.start_depth > 1;
+
+        let rotations;
+        switch (move.rotation_type) {
+            case RotationType.Normal:
+                if (invertRotation) {
+                    // If we're starting from the opposite face, rotations are inverted.
+                    rotations = -1;
+                } else {
+                    rotations = 1;
+                }
                 break;
-            case 'f':
-                this.move_any((_x, _y, z) => z !== -1, new THREE.Vector3(0, 0, 1), move.rotations);
+            case RotationType.Inverse:
+                if (invertRotation) {
+                    rotations = 1;
+                } else {
+                    rotations = -1;
+                }
                 break;
-            case 'z':
-                this.move_any((_x, _y, _z) => true, new THREE.Vector3(0, 0, 1), move.rotations);
+            case RotationType.Double:
+                if (invertRotation) {
+                    rotations = -2;
+                } else {
+                    rotations = 2;
+                }
                 break;
-            case 'S':
-                this.move_any((_x, _y, z) => z === 0, new THREE.Vector3(0, 0, 1), move.rotations);
+            // no default
+        }
+
+        switch (axis) {
+            case Axis.FB:
+                this.move_any(
+                    (_x, _y, z) => {
+                        const depth = 1 - z;
+                        return move.start_depth <= depth && depth < move.end_depth;
+                    },
+                    new THREE.Vector3(0, 0, 1),
+                    rotations
+                );
                 break;
-            case 'R':
-                this.move_any((x, _y, _z) => x === 1, new THREE.Vector3(1, 0, 0), move.rotations);
+            case Axis.RL:
+                this.move_any(
+                    (x, _y, _z) => {
+                        const depth = 1 - x;
+                        return move.start_depth <= depth && depth < move.end_depth;
+                    },
+                    new THREE.Vector3(1, 0, 0),
+                    rotations
+                );
                 break;
-            case 'r':
-                this.move_any((x, _y, _z) => x !== -1, new THREE.Vector3(1, 0, 0), move.rotations);
-                break;
-            case 'x':
-                this.move_any((_x, _y, _z) => true, new THREE.Vector3(1, 0, 0), move.rotations);
-                break;
-            case 'U':
-                this.move_any((_x, y, _z) => y === 1, new THREE.Vector3(0, 1, 0), move.rotations);
-                break;
-            case 'u':
-                this.move_any((_x, y, _z) => y !== -1, new THREE.Vector3(0, 1, 0), move.rotations);
-                break;
-            case 'y':
-                this.move_any((_x, _y, _z) => true, new THREE.Vector3(0, 1, 0), move.rotations);
-                break;
-            case 'B':
-                this.move_any((_x, _y, z) => z === -1, new THREE.Vector3(0, 0, -1), move.rotations);
-                break;
-            case 'b':
-                this.move_any((_x, _y, z) => z !== 1, new THREE.Vector3(0, 0, -1), move.rotations);
-                break;
-            case 'L':
-                this.move_any((x, _y, _z) => x === -1, new THREE.Vector3(-1, 0, 0), move.rotations);
-                break;
-            case 'l':
-                this.move_any((x, _y, _z) => x !== 1, new THREE.Vector3(-1, 0, 0), move.rotations);
-                break;
-            case 'M':
-                this.move_any((x, _y, _z) => x === 0, new THREE.Vector3(-1, 0, 0), move.rotations);
-                break;
-            case 'D':
-                this.move_any((_x, y, _z) => y === -1, new THREE.Vector3(0, -1, 0), move.rotations);
-                break;
-            case 'd':
-                this.move_any((_x, y, _z) => y !== 1, new THREE.Vector3(0, -1, 0), move.rotations);
-                break;
-            case 'E':
-                this.move_any((_x, y, _z) => y === 0, new THREE.Vector3(0, -1, 0), move.rotations);
+            case Axis.UD:
+                this.move_any(
+                    (_x, y, _z) => {
+                        const depth = y - 1;
+                        return move.start_depth <= depth && depth < move.end_depth;
+                    },
+                    new THREE.Vector3(0, 1, 0),
+                    rotations
+                );
                 break;
             // no default
         }
@@ -221,9 +190,32 @@ export default class Cube {
             });
             Object.assign(this.piecesByPosition, this.pieces);
             setTimeout(() => {
-                // Wait for the last move's animation to finish.
+                // Wait for the animation to finish.
                 this.animating = false;
             }, 334);
+        };
+
+        if (!this.animating) {
+            this.animating = true;
+            animate();
+        }
+    }
+
+    n: number = 0;
+
+    performAlg(alg: Move[]) {
+        const animate = () => {
+            this.move(alg[this.n]);
+            if (this.n + 1 < alg.length) {
+                setTimeout(() => animate(), 334);
+                this.n += 1;
+            } else {
+                this.n = 0;
+                setTimeout(() => {
+                    // Wait for the last move's animation to finish.
+                    this.animating = false;
+                }, 334);
+            }
         };
 
         if (!this.animating) {

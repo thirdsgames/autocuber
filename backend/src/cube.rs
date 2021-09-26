@@ -1,4 +1,5 @@
 use std::{fmt::Display, ops::Index, str::FromStr};
+use wasm_bindgen::{prelude::*, JsCast};
 
 /// Represents a *valid* (i.e. has all of the required pieces, not necessarily solvable) NxN cube.
 /// Not `Copy` primarily as a lint.
@@ -74,6 +75,7 @@ impl FromStr for FaceType {
 }
 
 /// An axis on a cube.
+#[wasm_bindgen]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Axis {
@@ -108,7 +110,8 @@ impl From<Colour> for FaceType {
     }
 }
 
-#[derive(Debug)]
+#[wasm_bindgen]
+#[derive(Debug, Copy, Clone)]
 pub enum RotationType {
     Normal,
     Double,
@@ -125,19 +128,18 @@ impl RotationType {
     }
 }
 
-#[derive(Debug)]
-pub enum Move {
-    Face {
-        axis: Axis,
-        rotation_type: RotationType,
-        // We turn all slices from `start_depth` to `end_depth`.
-        // If `start_depth = 0, end_depth = 1`, this is a normal turn.
-        // If `start_depth = 1, end_depth = 2`, this is a slice turn.
-        // If `start_depth = 0, end_depth = 2`, this is a wide turn.
-        // If `start_depth = 2, end_depth = 3`, this is an inverse turn on the opposite face.
-        start_depth: usize,
-        end_depth: usize,
-    },
+#[wasm_bindgen]
+#[derive(Debug, Copy, Clone)]
+pub struct Move {
+    pub axis: Axis,
+    pub rotation_type: RotationType,
+    // We turn all slices from `start_depth` to `end_depth`.
+    // If `start_depth = 0, end_depth = 1`, this is a normal turn.
+    // If `start_depth = 1, end_depth = 2`, this is a slice turn.
+    // If `start_depth = 0, end_depth = 2`, this is a wide turn.
+    // If `start_depth = 2, end_depth = 3`, this is an inverse turn on the opposite face.
+    pub start_depth: usize,
+    pub end_depth: usize,
 }
 
 impl FromStr for Move {
@@ -197,7 +199,7 @@ impl FromStr for Move {
                 UD
             }
         };
-        Ok(Self::Face {
+        Ok(Self {
             axis,
             rotation_type,
             start_depth,
@@ -208,6 +210,22 @@ impl FromStr for Move {
 
 pub struct Algorithm {
     pub moves: Vec<Move>,
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "Array<Move>")]
+    pub type AlgorithmConv;
+}
+
+impl From<Algorithm> for AlgorithmConv {
+    fn from(alg: Algorithm) -> Self {
+        alg.moves
+            .into_iter()
+            .map(JsValue::from)
+            .collect::<js_sys::Array>()
+            .unchecked_into::<AlgorithmConv>()
+    }
 }
 
 impl FromStr for Algorithm {
@@ -315,7 +333,7 @@ impl<const N: usize> Cube<N> {
         Self {
             faces: match mv {
                 // FB turns
-                Move::Face {
+                Move {
                     axis: FB,
                     rotation_type: RotationType::Normal,
                     start_depth,
@@ -333,7 +351,7 @@ impl<const N: usize> Cube<N> {
                     (L Right D Top)
                     (D Top R Left)
                 ),
-                Move::Face {
+                Move {
                     axis: FB,
                     rotation_type: RotationType::Double,
                     start_depth,
@@ -346,7 +364,7 @@ impl<const N: usize> Cube<N> {
                     (L Right R Left)
                     (D Top U Bottom)
                 ),
-                Move::Face {
+                Move {
                     axis: FB,
                     rotation_type: RotationType::Inverse,
                     start_depth,
@@ -360,7 +378,7 @@ impl<const N: usize> Cube<N> {
                     (D Top L Right)
                 ),
                 // RL turns
-                Move::Face {
+                Move {
                     axis: RL,
                     rotation_type: RotationType::Normal,
                     start_depth,
@@ -373,7 +391,7 @@ impl<const N: usize> Cube<N> {
                     (L b cw)
                     (D Right B Left)
                 ),
-                Move::Face {
+                Move {
                     axis: RL,
                     rotation_type: RotationType::Double,
                     start_depth,
@@ -386,7 +404,7 @@ impl<const N: usize> Cube<N> {
                     (L b 2)
                     (D Right U Right)
                 ),
-                Move::Face {
+                Move {
                     axis: RL,
                     rotation_type: RotationType::Inverse,
                     start_depth,
@@ -400,7 +418,7 @@ impl<const N: usize> Cube<N> {
                     (D Right F Right)
                 ),
                 // UD turns
-                Move::Face {
+                Move {
                     axis: UD,
                     rotation_type: RotationType::Normal,
                     start_depth,
@@ -413,7 +431,7 @@ impl<const N: usize> Cube<N> {
                     (L Top F Top)
                     (D b cw)
                 ),
-                Move::Face {
+                Move {
                     axis: UD,
                     rotation_type: RotationType::Double,
                     start_depth,
@@ -426,7 +444,7 @@ impl<const N: usize> Cube<N> {
                     (L Top R Top)
                     (D b 2)
                 ),
-                Move::Face {
+                Move {
                     axis: UD,
                     rotation_type: RotationType::Inverse,
                     start_depth,

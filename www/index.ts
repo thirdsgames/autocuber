@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import * as wasm from 'autocuber';
+import { RotationType, Axis } from 'autocuber';
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import Cube, { Face } from './cube';
+import Cube from './cube';
 
 // UI initialisation
 
@@ -53,28 +54,30 @@ function animate() {
 animate();
 
 // Create the move div
-{
+/* {
     const move = document.getElementById('move');
     const moveHeader = document.createElement('h1');
     moveHeader.innerText = 'Move';
     move.appendChild(moveHeader);
     const table = document.createElement('table');
 
-    const faces: Face[] = ['F', 'R', 'U', 'B', 'L', 'D', 'M', 'E', 'S'];
+    const faces = ['F', 'R', 'U', 'B', 'L', 'D', 'M', 'E', 'S'];
     faces.forEach((face) => {
         const row = document.createElement('tr');
 
         const types: [string, number][] = [
-            ['', 1],
-            ["'", -1],
-            ['2', 2],
-            ['w', 1],
-            ["w'", -1],
-            ['w2', 2],
+            ['', RotationType.Normal],
+            ["'", RotationType.Inverse],
+            ['2', RotationType.Double],
+            ['w', RotationType.Normal],
+            ["w'", RotationType.Inverse],
+            ['w2', RotationType.Double],
         ];
-        types.forEach(([name, rotations]) => {
+        types.forEach(([name, rotationType]) => {
             let innerText = face + name;
-            let realFace = face;
+            let axis;
+            let start_depth;
+            let end_depth;
             if (name.includes('w')) {
                 if (['M', 'E', 'S'].includes(face)) {
                     // Replace Mw, Ew, Sw with x, y, z rotations.
@@ -91,7 +94,7 @@ animate();
             const button = document.createElement('button');
             button.addEventListener('click', (_ev) => {
                 if (!cube.animating) {
-                    cube.move({ face: realFace, rotations });
+                    cube.move({ face: realFace, rotationType });
                 }
             });
             button.innerText = innerText;
@@ -103,7 +106,7 @@ animate();
     });
 
     move.appendChild(table);
-}
+} */
 
 // Create the history div
 {
@@ -112,14 +115,27 @@ animate();
     historyHeader.innerText = 'History';
     history.appendChild(historyHeader);
 
-    const button = document.createElement('button');
-    button.addEventListener('click', (_ev) => {
-        if (!cube.animating) {
-            cube.reset();
-        }
-    });
-    button.innerText = 'Reset';
-    history.appendChild(button);
+    {
+        const button = document.createElement('button');
+        button.addEventListener('click', (_ev) => {
+            if (!cube.animating) {
+                cube.reset();
+            }
+        });
+        button.innerText = 'Reset';
+        history.appendChild(button);
+    }
+
+    {
+        const button = document.createElement('button');
+        button.addEventListener('click', (_ev) => {
+            if (!cube.animating) {
+                cube.performAlg(wasm.gen_alg());
+            }
+        });
+        button.innerText = 'Perform Algorithm';
+        history.appendChild(button);
+    }
 }
 
 // WASM
@@ -128,4 +144,5 @@ const universe = wasm.init();
 console.log(universe);
 
 wasm.greet();
+console.log(wasm.gen_alg());
 universe.free();

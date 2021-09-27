@@ -74,6 +74,35 @@ impl FromStr for FaceType {
     }
 }
 
+impl Display for FaceType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            F => write!(f, "F"),
+            R => write!(f, "R"),
+            U => write!(f, "U"),
+            B => write!(f, "B"),
+            L => write!(f, "L"),
+            D => write!(f, "D"),
+        }
+    }
+}
+
+impl Enumerable for FaceType {
+    const N: usize = 6;
+
+    fn enumerate() -> [Self; Self::N] {
+        [F, R, U, B, L, D]
+    }
+
+    fn from_index(idx: usize) -> FaceType {
+        unsafe { std::mem::transmute(idx as u8) }
+    }
+
+    fn index(&self) -> usize {
+        *self as u8 as usize
+    }
+}
+
 /// An axis on a cube.
 #[wasm_bindgen]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -242,27 +271,27 @@ impl Move {
     }
 }
 
-pub struct Algorithm {
+pub struct MoveSequence {
     pub moves: Vec<Move>,
 }
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(typescript_type = "Array<Move>")]
-    pub type AlgorithmConv;
+    pub type MoveSequenceConv;
 }
 
-impl From<Algorithm> for AlgorithmConv {
-    fn from(alg: Algorithm) -> Self {
+impl From<MoveSequence> for MoveSequenceConv {
+    fn from(alg: MoveSequence) -> Self {
         alg.moves
             .into_iter()
             .map(JsValue::from)
             .collect::<js_sys::Array>()
-            .unchecked_into::<AlgorithmConv>()
+            .unchecked_into::<MoveSequenceConv>()
     }
 }
 
-impl FromStr for Algorithm {
+impl FromStr for MoveSequence {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -291,9 +320,6 @@ impl<const N: usize> Cube<N> {
     pub fn face(&self, ty: FaceType) -> &Face<N> {
         &self.faces[ty as usize]
     }
-
-    /// Asserts that this cube is valid.
-    pub fn validate(&self) {}
 
     pub fn perform(self, mv: Move) -> Self {
         // Heavily optimised move-performing logic.
@@ -548,6 +574,8 @@ enum FaceSegment {
     Left,
 }
 use FaceSegment::*;
+
+use crate::group::Enumerable;
 
 // The range is there as an optimisation for the compiler, since we
 // know the size of each array at compile time. It also helps unify

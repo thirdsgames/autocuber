@@ -1,6 +1,11 @@
 #![feature(maybe_uninit_uninit_array)]
+#![feature(generic_const_exprs)]
+#![allow(incomplete_features)]
 
 mod cube;
+mod group;
+mod permute;
+mod solve;
 mod utils;
 
 use wasm_bindgen::prelude::*;
@@ -31,7 +36,7 @@ pub fn init() -> Universe {
 pub fn greet() {
     // alert("Hello, autocuber!");
     let mut cube = Cube::<3>::new();
-    let alg = "M2 U2 M2 U2".parse::<Algorithm>().unwrap();
+    let alg = "M2 U2 M2 U2".parse::<MoveSequence>().unwrap();
     for mv in alg.moves {
         cube = cube.perform(utils::dbg2!(mv));
         utils::log!("cube:\n{}", cube);
@@ -40,9 +45,9 @@ pub fn greet() {
 
 /// Generate some algorithm that we can perform on the cube.
 #[wasm_bindgen]
-pub fn gen_alg() -> AlgorithmConv {
+pub fn gen_alg() -> MoveSequenceConv {
     "R' U L U' R U2' L' U L U2 L'"
-        .parse::<Algorithm>()
+        .parse::<MoveSequence>()
         .unwrap()
         .into()
 }

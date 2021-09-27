@@ -128,17 +128,28 @@ impl RotationType {
     }
 }
 
+/// Gives the inverse of a RotationType.
+#[wasm_bindgen(js_name = inverse)]
+#[doc(hidden)]
+#[allow(dead_code)]
+pub fn inverse_wasm(rot: RotationType) -> RotationType {
+    rot.inverse()
+}
+
 #[wasm_bindgen]
 #[derive(Debug, Copy, Clone)]
 pub struct Move {
     pub axis: Axis,
+    #[wasm_bindgen(js_name = rotationType)]
     pub rotation_type: RotationType,
     // We turn all slices from `start_depth` to `end_depth`.
     // If `start_depth = 0, end_depth = 1`, this is a normal turn.
     // If `start_depth = 1, end_depth = 2`, this is a slice turn.
     // If `start_depth = 0, end_depth = 2`, this is a wide turn.
     // If `start_depth = 2, end_depth = 3`, this is an inverse turn on the opposite face.
+    #[wasm_bindgen(js_name = startDepth)]
     pub start_depth: usize,
+    #[wasm_bindgen(js_name = endDepth)]
     pub end_depth: usize,
 }
 
@@ -211,6 +222,23 @@ impl FromStr for Move {
             start_depth,
             end_depth,
         })
+    }
+}
+
+#[wasm_bindgen]
+impl Move {
+    pub fn new(
+        axis: Axis,
+        rotation_type: RotationType,
+        start_depth: usize,
+        end_depth: usize,
+    ) -> Self {
+        Self {
+            axis,
+            rotation_type,
+            start_depth,
+            end_depth,
+        }
     }
 }
 

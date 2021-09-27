@@ -25,6 +25,7 @@
         "implicit-arrow-linebreak": "off",
         "function-paren-newline": "off",
         "operator-linebreak": "off",
-        "@typescript-eslint/no-unused-vars": "off"
+        "@typescript-eslint/no-unused-vars": "off",
+        "object-curly-newline": "off"
     }
 }

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as wasm from 'autocuber';
-import { RotationType, Axis } from 'autocuber';
+import { RotationType, Axis, Move, inverse } from 'autocuber';
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import Cube from './cube';
@@ -54,7 +54,7 @@ function animate() {
 animate();
 
 // Create the move div
-/* {
+{
     const move = document.getElementById('move');
     const moveHeader = document.createElement('h1');
     moveHeader.innerText = 'Move';
@@ -75,26 +75,89 @@ animate();
         ];
         types.forEach(([name, rotationType]) => {
             let innerText = face + name;
-            let axis;
-            let start_depth;
-            let end_depth;
-            if (name.includes('w')) {
+            let axis: Axis;
+            let startDepth: number;
+            let endDepth: number;
+            const wide = name.includes('w');
+
+            switch (face) {
+                case 'F':
+                case 'S':
+                case 'B':
+                    axis = Axis.FB;
+                    break;
+                case 'R':
+                case 'M':
+                case 'L':
+                    axis = Axis.RL;
+                    break;
+                case 'U':
+                case 'E':
+                case 'D':
+                    axis = Axis.UD;
+                    break;
+                // no default
+            }
+
+            switch (face) {
+                case 'F':
+                case 'R':
+                case 'U':
+                    startDepth = 0;
+                    endDepth = wide ? 2 : 1;
+                    break;
+                case 'M':
+                case 'E':
+                case 'S':
+                    if (wide) {
+                        // Replace Mw, Ew, Sw with x, y, z rotations.
+                        startDepth = 0;
+                        endDepth = 3;
+                    } else {
+                        startDepth = 1;
+                        endDepth = 2;
+                    }
+                    break;
+                case 'B':
+                case 'L':
+                case 'D':
+                    startDepth = wide ? 1 : 2;
+                    endDepth = 3;
+                    break;
+                // no default
+            }
+
+            let realRotationType: RotationType;
+            switch (face) {
+                case 'B':
+                case 'L':
+                case 'D':
+                case 'M':
+                case 'E':
+                    realRotationType = inverse(rotationType);
+                    break;
+                default:
+                    realRotationType = rotationType;
+            }
+
+            if (wide) {
                 if (['M', 'E', 'S'].includes(face)) {
                     // Replace Mw, Ew, Sw with x, y, z rotations.
-                    realFace = face.replace('M', 'x').replace('E', 'y').replace('S', 'z') as Face;
+                    const realFace = face.replace('M', 'x').replace('E', 'y').replace('S', 'z');
                     innerText = realFace + name.substr(1);
                 } else {
                     // Replace Fw with f, etc.
-                    realFace = face.toLowerCase() as Face;
+                    const realFace = face.toLowerCase();
                     innerText = realFace + name.substr(1);
                 }
             }
 
             const td = document.createElement('td');
             const button = document.createElement('button');
+
             button.addEventListener('click', (_ev) => {
                 if (!cube.animating) {
-                    cube.move({ face: realFace, rotationType });
+                    cube.move(Move.new(axis, realRotationType, startDepth, endDepth));
                 }
             });
             button.innerText = innerText;
@@ -106,7 +169,7 @@ animate();
     });
 
     move.appendChild(table);
-} */
+}
 
 // Create the history div
 {

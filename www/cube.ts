@@ -112,7 +112,7 @@ export default class Cube {
         const axis = move.axis as Axis;
 
         let rotations;
-        switch (move.rotation_type) {
+        switch (move.rotationType) {
             case RotationType.Normal:
                 rotations = 1;
                 break;
@@ -130,7 +130,7 @@ export default class Cube {
                 this.move_any(
                     (_x, _y, z) => {
                         const depth = 1 - z;
-                        return move.start_depth <= depth && depth < move.end_depth;
+                        return move.startDepth <= depth && depth < move.endDepth;
                     },
                     new THREE.Vector3(0, 0, 1),
                     rotations
@@ -140,7 +140,7 @@ export default class Cube {
                 this.move_any(
                     (x, _y, _z) => {
                         const depth = 1 - x;
-                        return move.start_depth <= depth && depth < move.end_depth;
+                        return move.startDepth <= depth && depth < move.endDepth;
                     },
                     new THREE.Vector3(1, 0, 0),
                     rotations
@@ -149,8 +149,8 @@ export default class Cube {
             case Axis.UD:
                 this.move_any(
                     (_x, y, _z) => {
-                        const depth = y - 1;
-                        return move.start_depth <= depth && depth < move.end_depth;
+                        const depth = 1 - y;
+                        return move.startDepth <= depth && depth < move.endDepth;
                     },
                     new THREE.Vector3(0, 1, 0),
                     rotations
@@ -158,6 +158,8 @@ export default class Cube {
                 break;
             // no default
         }
+
+        move.free();
     }
 
     animating: boolean = false;

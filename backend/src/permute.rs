@@ -1,7 +1,9 @@
 use std::fmt::Display;
 
+use crate::cube::EdgeType::*;
+use crate::cube::FaceType::*;
 use crate::{
-    cube::{EdgeType, FaceType},
+    cube::{EdgeType, FaceType, RotationType},
     group::*,
 };
 
@@ -66,11 +68,117 @@ pub type CentrePermutation = SymmetricGroup<CentreCubelet>;
 /// That is, in any position, an edge may be positioned in one of two orientations.
 pub type EdgePermutation = OrientedSymmetricGroup<EdgeCubelet, 2>;
 
+impl EdgePermutation {
+    pub fn from_normal_face_turn(face: FaceType) -> Self {
+        match face {
+            // Cycle UF FR DF FL (and adjust parity)
+            F => EdgePermutation::new_unchecked([
+                (EdgeCubelet(UR), CyclicGroup::new(0)),
+                (EdgeCubelet(FR), CyclicGroup::new(1)),
+                (EdgeCubelet(UL), CyclicGroup::new(0)),
+                (EdgeCubelet(UB), CyclicGroup::new(0)),
+                (EdgeCubelet(DR), CyclicGroup::new(0)),
+                (EdgeCubelet(FL), CyclicGroup::new(1)),
+                (EdgeCubelet(DL), CyclicGroup::new(0)),
+                (EdgeCubelet(DB), CyclicGroup::new(0)),
+                (EdgeCubelet(DF), CyclicGroup::new(1)),
+                (EdgeCubelet(UF), CyclicGroup::new(1)),
+                (EdgeCubelet(BR), CyclicGroup::new(0)),
+                (EdgeCubelet(BL), CyclicGroup::new(0)),
+            ]),
+            // Cycle UR BR DR FR
+            R => EdgePermutation::new_unchecked([
+                (EdgeCubelet(BR), CyclicGroup::new(0)),
+                (EdgeCubelet(UF), CyclicGroup::new(0)),
+                (EdgeCubelet(UL), CyclicGroup::new(0)),
+                (EdgeCubelet(UB), CyclicGroup::new(0)),
+                (EdgeCubelet(FR), CyclicGroup::new(0)),
+                (EdgeCubelet(DF), CyclicGroup::new(0)),
+                (EdgeCubelet(DL), CyclicGroup::new(0)),
+                (EdgeCubelet(DB), CyclicGroup::new(0)),
+                (EdgeCubelet(UR), CyclicGroup::new(0)),
+                (EdgeCubelet(FL), CyclicGroup::new(0)),
+                (EdgeCubelet(DR), CyclicGroup::new(0)),
+                (EdgeCubelet(BL), CyclicGroup::new(0)),
+            ]),
+            // Cycle UR UF UL UB
+            U => EdgePermutation::new_unchecked([
+                (EdgeCubelet(UF), CyclicGroup::new(0)),
+                (EdgeCubelet(UL), CyclicGroup::new(0)),
+                (EdgeCubelet(UB), CyclicGroup::new(0)),
+                (EdgeCubelet(UR), CyclicGroup::new(0)),
+                (EdgeCubelet(DR), CyclicGroup::new(0)),
+                (EdgeCubelet(DF), CyclicGroup::new(0)),
+                (EdgeCubelet(DL), CyclicGroup::new(0)),
+                (EdgeCubelet(DB), CyclicGroup::new(0)),
+                (EdgeCubelet(FR), CyclicGroup::new(0)),
+                (EdgeCubelet(FL), CyclicGroup::new(0)),
+                (EdgeCubelet(BR), CyclicGroup::new(0)),
+                (EdgeCubelet(BL), CyclicGroup::new(0)),
+            ]),
+            // Cycle UB BL DB BR (and adjust parity)
+            B => EdgePermutation::new_unchecked([
+                (EdgeCubelet(UR), CyclicGroup::new(0)),
+                (EdgeCubelet(UF), CyclicGroup::new(0)),
+                (EdgeCubelet(UL), CyclicGroup::new(0)),
+                (EdgeCubelet(BL), CyclicGroup::new(1)),
+                (EdgeCubelet(DR), CyclicGroup::new(0)),
+                (EdgeCubelet(DF), CyclicGroup::new(0)),
+                (EdgeCubelet(DL), CyclicGroup::new(0)),
+                (EdgeCubelet(BR), CyclicGroup::new(1)),
+                (EdgeCubelet(FR), CyclicGroup::new(0)),
+                (EdgeCubelet(FL), CyclicGroup::new(0)),
+                (EdgeCubelet(UB), CyclicGroup::new(1)),
+                (EdgeCubelet(DB), CyclicGroup::new(1)),
+            ]),
+            // Cycle UL FL DL BL
+            L => EdgePermutation::new_unchecked([
+                (EdgeCubelet(UR), CyclicGroup::new(0)),
+                (EdgeCubelet(UF), CyclicGroup::new(0)),
+                (EdgeCubelet(FL), CyclicGroup::new(0)),
+                (EdgeCubelet(UB), CyclicGroup::new(0)),
+                (EdgeCubelet(DR), CyclicGroup::new(0)),
+                (EdgeCubelet(DF), CyclicGroup::new(0)),
+                (EdgeCubelet(BL), CyclicGroup::new(0)),
+                (EdgeCubelet(DB), CyclicGroup::new(0)),
+                (EdgeCubelet(FR), CyclicGroup::new(0)),
+                (EdgeCubelet(DL), CyclicGroup::new(0)),
+                (EdgeCubelet(BR), CyclicGroup::new(0)),
+                (EdgeCubelet(UL), CyclicGroup::new(0)),
+            ]),
+            // Cycle DR DB DL DF
+            D => EdgePermutation::new_unchecked([
+                (EdgeCubelet(UR), CyclicGroup::new(0)),
+                (EdgeCubelet(UF), CyclicGroup::new(0)),
+                (EdgeCubelet(UL), CyclicGroup::new(0)),
+                (EdgeCubelet(UB), CyclicGroup::new(0)),
+                (EdgeCubelet(DB), CyclicGroup::new(0)),
+                (EdgeCubelet(DR), CyclicGroup::new(0)),
+                (EdgeCubelet(DF), CyclicGroup::new(0)),
+                (EdgeCubelet(DL), CyclicGroup::new(0)),
+                (EdgeCubelet(FR), CyclicGroup::new(0)),
+                (EdgeCubelet(FL), CyclicGroup::new(0)),
+                (EdgeCubelet(BR), CyclicGroup::new(0)),
+                (EdgeCubelet(BL), CyclicGroup::new(0)),
+            ]),
+        }
+    }
+
+    /// TODO: Cache the results of this function if profiling indicates it is a hot path.
+    /// For example, using the `memoize` crate.
+    pub fn from_face_turn(face: FaceType, rotation_type: RotationType) -> Self {
+        let s = Self::from_normal_face_turn(face);
+        match rotation_type {
+            RotationType::Normal => s,
+            RotationType::Double => s.op(s),
+            RotationType::Inverse => s.inverse(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cube::EdgeType::*;
-    use crate::cube::FaceType::*;
 
     #[test]
     fn test_group_operation() {
@@ -132,25 +240,13 @@ mod tests {
             (EdgeCubelet(BR), CyclicGroup::new(0)),
             (EdgeCubelet(BL), CyclicGroup::new(0)),
         ]);
+        assert_eq!(e.order(), 1);
         assert_eq!(e, g.op(g));
     }
 
     #[test]
     fn test_face_turn() {
-        let turn_f = EdgePermutation::new_unchecked([
-            (EdgeCubelet(UR), CyclicGroup::new(0)),
-            (EdgeCubelet(FR), CyclicGroup::new(1)),
-            (EdgeCubelet(UL), CyclicGroup::new(0)),
-            (EdgeCubelet(UB), CyclicGroup::new(0)),
-            (EdgeCubelet(DR), CyclicGroup::new(0)),
-            (EdgeCubelet(FL), CyclicGroup::new(1)),
-            (EdgeCubelet(DL), CyclicGroup::new(0)),
-            (EdgeCubelet(DB), CyclicGroup::new(0)),
-            (EdgeCubelet(DF), CyclicGroup::new(1)),
-            (EdgeCubelet(UF), CyclicGroup::new(1)),
-            (EdgeCubelet(BR), CyclicGroup::new(0)),
-            (EdgeCubelet(BL), CyclicGroup::new(0)),
-        ]);
+        let turn_f = EdgePermutation::from_face_turn(F, RotationType::Normal);
         let turn_f2 = EdgePermutation::new_unchecked([
             (EdgeCubelet(UR), CyclicGroup::new(0)),
             (EdgeCubelet(DF), CyclicGroup::new(0)),
@@ -169,21 +265,9 @@ mod tests {
         assert_eq!(turn_f2, turn_f.op(turn_f));
         assert_eq!(turn_f.inverse(), turn_f.op(turn_f).op(turn_f));
 
-        let turn_r = EdgePermutation::new_unchecked([
-            (EdgeCubelet(BR), CyclicGroup::new(0)),
-            (EdgeCubelet(UF), CyclicGroup::new(0)),
-            (EdgeCubelet(UL), CyclicGroup::new(0)),
-            (EdgeCubelet(UB), CyclicGroup::new(0)),
-            (EdgeCubelet(FR), CyclicGroup::new(0)),
-            (EdgeCubelet(DF), CyclicGroup::new(0)),
-            (EdgeCubelet(DL), CyclicGroup::new(0)),
-            (EdgeCubelet(DB), CyclicGroup::new(0)),
-            (EdgeCubelet(UR), CyclicGroup::new(0)),
-            (EdgeCubelet(FL), CyclicGroup::new(0)),
-            (EdgeCubelet(DR), CyclicGroup::new(0)),
-            (EdgeCubelet(BL), CyclicGroup::new(0)),
-        ]);
+        let turn_r = EdgePermutation::from_face_turn(R, RotationType::Normal);
 
+        // Order is reversed to speedcubing notation!
         let rf = turn_f.op(turn_r);
         let rf_manual = EdgePermutation::new_unchecked([
             (EdgeCubelet(BR), CyclicGroup::new(0)),
@@ -200,5 +284,65 @@ mod tests {
             (EdgeCubelet(BL), CyclicGroup::new(0)),
         ]);
         assert_eq!(rf, rf_manual);
+
+        let fr = turn_r.op(turn_f);
+        let fr_manual = EdgePermutation::new_unchecked([
+            (EdgeCubelet(BR), CyclicGroup::new(0)),
+            (EdgeCubelet(UR), CyclicGroup::new(1)),
+            (EdgeCubelet(UL), CyclicGroup::new(0)),
+            (EdgeCubelet(UB), CyclicGroup::new(0)),
+            (EdgeCubelet(FR), CyclicGroup::new(0)),
+            (EdgeCubelet(FL), CyclicGroup::new(1)),
+            (EdgeCubelet(DL), CyclicGroup::new(0)),
+            (EdgeCubelet(DB), CyclicGroup::new(0)),
+            (EdgeCubelet(DF), CyclicGroup::new(1)),
+            (EdgeCubelet(UF), CyclicGroup::new(1)),
+            (EdgeCubelet(DR), CyclicGroup::new(0)),
+            (EdgeCubelet(BL), CyclicGroup::new(0)),
+        ]);
+        assert_eq!(fr, fr_manual);
+
+        assert_eq!(turn_f.order(), 4);
+        assert_eq!(turn_r.order(), 4);
+        // Surprisingly, the move sequence RF has order 7 on edges.
+        assert_eq!(rf.order(), 7);
+        assert_eq!(fr.order(), 7);
+    }
+
+    #[test]
+    fn test_alg() {
+        // R' U R' U' R' U' R' U R U R2 is a U permutation.
+        let moves = [
+            EdgePermutation::from_face_turn(R, RotationType::Inverse),
+            EdgePermutation::from_face_turn(U, RotationType::Normal),
+            EdgePermutation::from_face_turn(R, RotationType::Inverse),
+            EdgePermutation::from_face_turn(U, RotationType::Inverse),
+            EdgePermutation::from_face_turn(R, RotationType::Inverse),
+            EdgePermutation::from_face_turn(U, RotationType::Inverse),
+            EdgePermutation::from_face_turn(R, RotationType::Inverse),
+            EdgePermutation::from_face_turn(U, RotationType::Normal),
+            EdgePermutation::from_face_turn(R, RotationType::Normal),
+            EdgePermutation::from_face_turn(U, RotationType::Normal),
+            EdgePermutation::from_face_turn(R, RotationType::Double),
+        ];
+        let mut operation = EdgePermutation::identity();
+        for mv in moves.into_iter().rev() {
+            operation = operation.op(mv);
+        }
+        // Thus, it should have order 3.
+        assert_eq!(operation.order(), 3);
+        // It should also be the 3-cycle (UR UL UB).
+        assert_eq!(
+            operation.act(&(EdgeCubelet(UR), CyclicGroup::new(0))),
+            (EdgeCubelet(UL), CyclicGroup::new(0))
+        );
+        assert_eq!(
+            operation.act(&(EdgeCubelet(UL), CyclicGroup::new(0))),
+            (EdgeCubelet(UB), CyclicGroup::new(0))
+        );
+        assert_eq!(
+            operation.act(&(EdgeCubelet(UB), CyclicGroup::new(0))),
+            (EdgeCubelet(UR), CyclicGroup::new(0))
+        );
     }
 }

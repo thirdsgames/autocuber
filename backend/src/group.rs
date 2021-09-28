@@ -18,8 +18,21 @@ pub trait InverseSemigroup: Semigroup {
     fn inverse(&self) -> Self;
 }
 
-pub trait Group: InverseSemigroup + Unital {}
-impl<G: InverseSemigroup + Unital> Group for G {}
+/// Groups must support Eq since we often need to compare elements.
+pub trait Group: InverseSemigroup + Unital + Eq + Clone + Sized {
+    /// Returns the order of an element in a group.
+    fn order(&self) -> usize {
+        let mut x = self.clone();
+        let mut i = 1;
+        let e = Self::identity();
+        while x != e {
+            x = x.op(self.clone());
+            i += 1;
+        }
+        i
+    }
+}
+impl<G: InverseSemigroup + Unital + Eq + Clone + Sized> Group for G {}
 
 /// A group can act on a set S.
 pub trait GroupAction<S>: Group + Sized {
@@ -205,7 +218,7 @@ where
 
 impl<S> GroupAction<S> for SymmetricGroup<S>
 where
-    S: Enumerable + Clone,
+    S: Enumerable + Clone + Eq,
     [(); S::N]: ,
 {
     fn act(&self, s: &S) -> S {
@@ -215,7 +228,7 @@ where
 
 impl<S> Display for SymmetricGroup<S>
 where
-    S: Enumerable + Clone + Display,
+    S: Enumerable + Clone + Display + Eq,
     [(); S::N]: ,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -336,7 +349,7 @@ where
 
 impl<S, const K: u8> GroupAction<(S, CyclicGroup<K>)> for OrientedSymmetricGroup<S, K>
 where
-    S: Enumerable + Clone,
+    S: Enumerable + Clone + Eq,
     [(); S::N]: ,
 {
     fn act(&self, (s, r): &(S, CyclicGroup<K>)) -> (S, CyclicGroup<K>) {
@@ -347,7 +360,7 @@ where
 
 impl<S, const K: u8> Display for OrientedSymmetricGroup<S, K>
 where
-    S: Enumerable + Clone + Display,
+    S: Enumerable + Clone + Display + Eq,
     [(); S::N]: ,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

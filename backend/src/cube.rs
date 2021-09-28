@@ -103,6 +103,108 @@ impl Enumerable for FaceType {
     }
 }
 
+/// One of twelve edge types on a cube.
+/// Edge names are derived from 2-axis (RL, UD) edge orientation.
+/// The "key sticker" is written first.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u8)]
+#[rustfmt::skip]
+pub enum EdgeType {
+    UR, UF, UL, UB,
+    DR, DF, DL, DB,
+    FR, FL, BR, BL,
+}
+use EdgeType::*;
+
+impl FromStr for EdgeType {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "UR" => Ok(UR),
+            "UF" => Ok(UF),
+            "UL" => Ok(UL),
+            "UB" => Ok(UB),
+            "DR" => Ok(DR),
+            "DF" => Ok(DF),
+            "DL" => Ok(DL),
+            "DB" => Ok(DB),
+            "FR" => Ok(FR),
+            "FL" => Ok(FL),
+            "BR" => Ok(BR),
+            "BL" => Ok(BL),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Display for EdgeType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UR => write!(f, "UR"),
+            UF => write!(f, "UF"),
+            UL => write!(f, "UL"),
+            UB => write!(f, "UB"),
+            DR => write!(f, "DR"),
+            DF => write!(f, "DF"),
+            DL => write!(f, "DL"),
+            DB => write!(f, "DB"),
+            FR => write!(f, "FR"),
+            FL => write!(f, "FL"),
+            BR => write!(f, "BR"),
+            BL => write!(f, "BL"),
+        }
+    }
+}
+
+impl Enumerable for EdgeType {
+    const N: usize = 12;
+
+    fn enumerate() -> [Self; Self::N] {
+        [UR, UF, UL, UB, DR, DF, DL, DB, FR, FL, BR, BL]
+    }
+
+    fn from_index(idx: usize) -> EdgeType {
+        unsafe { std::mem::transmute(idx as u8) }
+    }
+
+    fn index(&self) -> usize {
+        *self as u8 as usize
+    }
+}
+
+impl EdgeType {
+    /// The first face must precede the second face in the name of the edge,
+    /// or None will be returned. That is, the first face must be the key sticker.
+    pub fn from_faces_ordered(f1: FaceType, f2: FaceType) -> Option<EdgeType> {
+        match (f1, f2) {
+            (U, R) => Some(UR),
+            (U, F) => Some(UF),
+            (U, L) => Some(UL),
+            (U, B) => Some(UB),
+            (D, R) => Some(DR),
+            (D, F) => Some(DF),
+            (D, L) => Some(DL),
+            (D, B) => Some(DB),
+            (F, R) => Some(FR),
+            (F, L) => Some(FL),
+            (B, R) => Some(BR),
+            (B, L) => Some(BL),
+            _ => None,
+        }
+    }
+
+    /// Yields the edge formed from the intersection of the two faces, along with
+    /// the parity of the given edge. The parity is reversed if the input faces are reversed.
+    pub fn from_faces(f1: FaceType, f2: FaceType) -> Option<(EdgeType, CyclicGroup<2>)> {
+        if let Some(value) = Self::from_faces_ordered(f1, f2) {
+            Some((value, CyclicGroup::new(0)))
+        } else {
+            Self::from_faces_ordered(f2, f1).map(|x| (x, CyclicGroup::new(1)))
+        }
+    }
+}
+
 /// An axis on a cube.
 #[wasm_bindgen]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -575,7 +677,7 @@ enum FaceSegment {
 }
 use FaceSegment::*;
 
-use crate::group::Enumerable;
+use crate::group::{CyclicGroup, Enumerable};
 
 // The range is there as an optimisation for the compiler, since we
 // know the size of each array at compile time. It also helps unify

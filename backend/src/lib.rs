@@ -1,4 +1,5 @@
 #![feature(maybe_uninit_uninit_array)]
+#![feature(format_args_capture)]
 #![feature(generic_const_exprs)]
 #![allow(incomplete_features)]
 

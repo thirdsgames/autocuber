@@ -1,9 +1,10 @@
 use std::fmt::Display;
 
+use crate::cube::CornerType::*;
 use crate::cube::EdgeType::*;
 use crate::cube::FaceType::*;
 use crate::{
-    cube::{EdgeType, FaceType, RotationType},
+    cube::{CornerType, EdgeType, FaceType, RotationType},
     group::*,
 };
 
@@ -59,6 +60,32 @@ impl Enumerable for EdgeCubelet {
     }
 }
 
+/// Represents one of 8 corner pieces of a cube.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct CornerCubelet(CornerType);
+
+impl Display for CornerCubelet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Enumerable for CornerCubelet {
+    const N: usize = CornerType::N;
+
+    fn enumerate() -> [Self; Self::N] {
+        CornerType::enumerate().map(CornerCubelet)
+    }
+
+    fn from_index(idx: usize) -> Self {
+        CornerCubelet(CornerType::from_index(idx))
+    }
+
+    fn index(&self) -> usize {
+        self.0.index()
+    }
+}
+
 /// Represents an element of the symmetric group of the centre pieces of a odd-sized cube.
 /// Ignores centre orientation.
 pub type CentrePermutation = SymmetricGroup<CentreCubelet>;
@@ -66,7 +93,15 @@ pub type CentrePermutation = SymmetricGroup<CentreCubelet>;
 /// Represents an element of the symmetric group of the 12 centred edge pieces of an odd-sized cube.
 /// Edges have a rotational cyclic group of order 2.
 /// That is, in any position, an edge may be positioned in one of two orientations.
+/// Orientation 0 is oriented "correctly", that is, the key sticker is on the correct face.
 pub type EdgePermutation = OrientedSymmetricGroup<EdgeCubelet, 2>;
+
+/// Represents an element of the symmetric group of the 8 corner pieces on a cube.
+/// Corners have a rotational cyclic group of order 3.
+/// That is, in any position, a corner may be positioned in one of three orientations.
+/// Orientation 0 is oriented "correctly", that is, the U/D colour is on the U/D face.
+/// Orientations 1, 2 are clockwise 120-degree and 240-degree turns.
+pub type CornerPermutation = OrientedSymmetricGroup<CornerCubelet, 2>;
 
 impl EdgePermutation {
     pub fn from_normal_face_turn(face: FaceType) -> Self {
@@ -166,6 +201,89 @@ impl EdgePermutation {
 
     /// TODO: Cache the results of this function if profiling indicates it is a hot path.
     /// For example, using the `memoize` crate.
+    pub fn from_face_turn(face: FaceType, rotation_type: RotationType) -> Self {
+        let s = Self::from_normal_face_turn(face);
+        match rotation_type {
+            RotationType::Normal => s,
+            RotationType::Double => s.op(s),
+            RotationType::Inverse => s.inverse(),
+        }
+    }
+}
+
+impl CornerPermutation {
+    pub fn from_normal_face_turn(face: FaceType) -> Self {
+        match face {
+            // Cycle FUL FUR FDR FDL
+            F => CornerPermutation::new_unchecked([
+                (CornerCubelet(FDR), CyclicGroup::new(2)),
+                (CornerCubelet(FUR), CyclicGroup::new(1)),
+                (CornerCubelet(FDL), CyclicGroup::new(1)),
+                (CornerCubelet(FUL), CyclicGroup::new(2)),
+                (CornerCubelet(BUR), CyclicGroup::new(0)),
+                (CornerCubelet(BUL), CyclicGroup::new(0)),
+                (CornerCubelet(BDR), CyclicGroup::new(0)),
+                (CornerCubelet(BDL), CyclicGroup::new(0)),
+            ]),
+            // Cycle FUR BUR BDR FDR
+            R => CornerPermutation::new_unchecked([
+                (CornerCubelet(BUR), CyclicGroup::new(1)),
+                (CornerCubelet(FUL), CyclicGroup::new(0)),
+                (CornerCubelet(FUR), CyclicGroup::new(2)),
+                (CornerCubelet(FDL), CyclicGroup::new(0)),
+                (CornerCubelet(BDR), CyclicGroup::new(2)),
+                (CornerCubelet(BUL), CyclicGroup::new(0)),
+                (CornerCubelet(FDR), CyclicGroup::new(1)),
+                (CornerCubelet(BDL), CyclicGroup::new(0)),
+            ]),
+            // Cycle FUR FUL BUL BUR
+            U => CornerPermutation::new_unchecked([
+                (CornerCubelet(FUL), CyclicGroup::new(0)),
+                (CornerCubelet(BUL), CyclicGroup::new(0)),
+                (CornerCubelet(FDR), CyclicGroup::new(0)),
+                (CornerCubelet(FDL), CyclicGroup::new(0)),
+                (CornerCubelet(FUR), CyclicGroup::new(0)),
+                (CornerCubelet(BUR), CyclicGroup::new(0)),
+                (CornerCubelet(BDR), CyclicGroup::new(0)),
+                (CornerCubelet(BDL), CyclicGroup::new(0)),
+            ]),
+            // Cycle BUR BUL BDL BDR
+            B => CornerPermutation::new_unchecked([
+                (CornerCubelet(FUR), CyclicGroup::new(0)),
+                (CornerCubelet(FUL), CyclicGroup::new(0)),
+                (CornerCubelet(FDR), CyclicGroup::new(0)),
+                (CornerCubelet(FDL), CyclicGroup::new(0)),
+                (CornerCubelet(BUL), CyclicGroup::new(1)),
+                (CornerCubelet(BDL), CyclicGroup::new(2)),
+                (CornerCubelet(BUR), CyclicGroup::new(2)),
+                (CornerCubelet(BDR), CyclicGroup::new(1)),
+            ]),
+            // Cycle BUL FUL FDL BDL
+            L => CornerPermutation::new_unchecked([
+                (CornerCubelet(FUR), CyclicGroup::new(0)),
+                (CornerCubelet(FDL), CyclicGroup::new(2)),
+                (CornerCubelet(FDR), CyclicGroup::new(0)),
+                (CornerCubelet(BDL), CyclicGroup::new(1)),
+                (CornerCubelet(BUR), CyclicGroup::new(0)),
+                (CornerCubelet(FUL), CyclicGroup::new(1)),
+                (CornerCubelet(BDR), CyclicGroup::new(0)),
+                (CornerCubelet(BUL), CyclicGroup::new(2)),
+            ]),
+            // Cycle FDL FDR BDR BDL
+            D => CornerPermutation::new_unchecked([
+                (CornerCubelet(FUR), CyclicGroup::new(0)),
+                (CornerCubelet(FUL), CyclicGroup::new(0)),
+                (CornerCubelet(BDR), CyclicGroup::new(0)),
+                (CornerCubelet(FDR), CyclicGroup::new(0)),
+                (CornerCubelet(BUR), CyclicGroup::new(0)),
+                (CornerCubelet(BUL), CyclicGroup::new(0)),
+                (CornerCubelet(BDL), CyclicGroup::new(0)),
+                (CornerCubelet(FDL), CyclicGroup::new(0)),
+            ]),
+        }
+    }
+
+    /// TODO: Cache the results of this function if profiling indicates it is a hot path.
     pub fn from_face_turn(face: FaceType, rotation_type: RotationType) -> Self {
         let s = Self::from_normal_face_turn(face);
         match rotation_type {
@@ -310,7 +428,7 @@ mod tests {
     }
 
     #[test]
-    fn test_alg() {
+    fn test_u_perm() {
         // R' U R' U' R' U' R' U R U R2 is a U permutation.
         let moves = [
             EdgePermutation::from_face_turn(R, RotationType::Inverse),
@@ -343,6 +461,41 @@ mod tests {
         assert_eq!(
             operation.act(&(EdgeCubelet(UB), CyclicGroup::new(0))),
             (EdgeCubelet(UR), CyclicGroup::new(0))
+        );
+    }
+
+    #[test]
+    fn test_a_perm() {
+        // L2 D2 L' U' L D2 L' U L' is an A permutation.
+        let moves = [
+            CornerPermutation::from_face_turn(L, RotationType::Double),
+            CornerPermutation::from_face_turn(D, RotationType::Double),
+            CornerPermutation::from_face_turn(L, RotationType::Inverse),
+            CornerPermutation::from_face_turn(U, RotationType::Inverse),
+            CornerPermutation::from_face_turn(L, RotationType::Normal),
+            CornerPermutation::from_face_turn(D, RotationType::Double),
+            CornerPermutation::from_face_turn(L, RotationType::Inverse),
+            CornerPermutation::from_face_turn(U, RotationType::Normal),
+            CornerPermutation::from_face_turn(L, RotationType::Inverse),
+        ];
+        let mut operation = CornerPermutation::identity();
+        for mv in moves.into_iter().rev() {
+            operation = operation.op(mv);
+        }
+        // Thus, it should have order 3.
+        assert_eq!(operation.order(), 3);
+        // It should also be the 3-cycle (BDL BDR BUL).
+        assert_eq!(
+            operation.act(&(CornerCubelet(BDL), CyclicGroup::new(0))),
+            (CornerCubelet(BDR), CyclicGroup::new(0))
+        );
+        assert_eq!(
+            operation.act(&(CornerCubelet(BDR), CyclicGroup::new(0))),
+            (CornerCubelet(BUL), CyclicGroup::new(1))
+        );
+        assert_eq!(
+            operation.act(&(CornerCubelet(BUL), CyclicGroup::new(1))),
+            (CornerCubelet(BDL), CyclicGroup::new(0))
         );
     }
 }

@@ -205,6 +205,83 @@ impl EdgeType {
     }
 }
 
+/// One of twelve corner types on a cube.
+/// Corner types are named according to the member of each axis: FB, UD, RL.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u8)]
+#[rustfmt::skip]
+pub enum CornerType {
+    FUR, FUL, FDR, FDL,
+    BUR, BUL, BDR, BDL,
+}
+use CornerType::*;
+
+impl FromStr for CornerType {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "FUR" => Ok(FUR),
+            "FUL" => Ok(FUL),
+            "FDR" => Ok(FDR),
+            "FDL" => Ok(FDL),
+            "BUR" => Ok(BUR),
+            "BUL" => Ok(BUL),
+            "BDR" => Ok(BDR),
+            "BDL" => Ok(BDL),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Display for CornerType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FUR => write!(f, "FUR"),
+            FUL => write!(f, "FUL"),
+            FDR => write!(f, "FDR"),
+            FDL => write!(f, "FDL"),
+            BUR => write!(f, "BUR"),
+            BUL => write!(f, "BUL"),
+            BDR => write!(f, "BDR"),
+            BDL => write!(f, "BDL"),
+        }
+    }
+}
+
+impl Enumerable for CornerType {
+    const N: usize = 8;
+
+    fn enumerate() -> [Self; Self::N] {
+        [FUR, FUL, FDR, FDL, BUR, BUL, BDR, BDL]
+    }
+
+    fn from_index(idx: usize) -> CornerType {
+        unsafe { std::mem::transmute(idx as u8) }
+    }
+
+    fn index(&self) -> usize {
+        *self as u8 as usize
+    }
+}
+
+impl CornerType {
+    /// The first face must be on the FB axis, the second on the UD axis, and the third on the RL axis.
+    pub fn from_faces_ordered(f1: FaceType, f2: FaceType, f3: FaceType) -> Option<CornerType> {
+        match (f1, f2, f3) {
+            (F, U, R) => Some(FUR),
+            (F, U, L) => Some(FUL),
+            (F, D, R) => Some(FDR),
+            (F, D, L) => Some(FDL),
+            (B, U, R) => Some(BUR),
+            (B, U, L) => Some(BUL),
+            (B, D, R) => Some(BDR),
+            (B, D, L) => Some(BDL),
+            _ => None,
+        }
+    }
+}
+
 /// An axis on a cube.
 #[wasm_bindgen]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

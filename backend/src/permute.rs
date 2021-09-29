@@ -4,7 +4,7 @@ use crate::cube::CornerType::*;
 use crate::cube::EdgeType::*;
 use crate::cube::FaceType::*;
 use crate::{
-    cube::{Axis, CornerType, EdgeType, FaceType, RotationType},
+    cube::{Axis, CornerType, EdgeType, FaceType, Move, MoveSequence, RotationType},
     group::*,
 };
 
@@ -502,6 +502,42 @@ impl CubePermutation3 {
             corners: CornerPermutation::identity(),
         }
     }
+
+    pub fn from_move(mv: Move) -> Self {
+        // Construct the move from commuting slice moves.
+        let mut g = Self::identity();
+
+        let front = match mv.axis {
+            Axis::FB => F,
+            Axis::RL => R,
+            Axis::UD => U,
+        };
+        let back = match mv.axis {
+            Axis::FB => B,
+            Axis::RL => L,
+            Axis::UD => D,
+        };
+
+        for i in mv.start_depth..mv.end_depth {
+            let h = match i {
+                0 => Self::from_face_turn(front, mv.rotation_type),
+                1 => Self::from_slice_turn(mv.axis, mv.rotation_type),
+                2 => Self::from_face_turn(back, mv.rotation_type.inverse()),
+                _ => panic!("invalid move on a 3x3x3 cube: {:?}", mv),
+            };
+            g = g.op(h);
+        }
+
+        g
+    }
+
+    pub fn from_move_sequence(moves: MoveSequence) -> Self {
+        let mut g = Self::identity();
+        for mv in moves.moves.into_iter().rev() {
+            g = g.op(Self::from_move(mv));
+        }
+        g
+    }
 }
 
 #[cfg(test)]
@@ -715,5 +751,16 @@ mod tests {
         let u = CubePermutation3::from_face_turn(U, RotationType::Normal);
         let h = m2.op(u).op(m2).op(u).op(u).op(m2).op(u).op(m2);
         assert_eq!(h.order(), 2);
+    }
+
+    #[test]
+    fn alg_parsing() {
+        // The superflip flips every edge on the cube.
+        // Therefore, flipping each edge twice should be a no-op.
+        let superflip = "U R2 F B R B2 R U2 L B2 R U' D' R2 F R' L B2 U2 F2"
+            .parse::<MoveSequence>()
+            .unwrap();
+        let g = CubePermutation3::from_move_sequence(superflip);
+        assert_eq!(g.order(), 2);
     }
 }

@@ -4,7 +4,7 @@ use crate::cube::CornerType::*;
 use crate::cube::EdgeType::*;
 use crate::cube::FaceType::*;
 use crate::{
-    cube::{CornerType, EdgeType, FaceType, RotationType},
+    cube::{Axis, CornerType, EdgeType, FaceType, RotationType},
     group::*,
 };
 
@@ -101,7 +101,71 @@ pub type EdgePermutation = OrientedSymmetricGroup<EdgeCubelet, 2>;
 /// That is, in any position, a corner may be positioned in one of three orientations.
 /// Orientation 0 is oriented "correctly", that is, the U/D colour is on the U/D face.
 /// Orientations 1, 2 are clockwise 120-degree and 240-degree turns.
-pub type CornerPermutation = OrientedSymmetricGroup<CornerCubelet, 2>;
+pub type CornerPermutation = OrientedSymmetricGroup<CornerCubelet, 3>;
+
+/// Represents a permutation of a 3x3x3 cube.
+/// This is the direct product of a centre permutation, edge permutation, and corner permutation group.
+#[derive(PartialEq, Eq, Clone, Copy)]
+pub struct CubePermutation3 {
+    centres: CentrePermutation,
+    edges: EdgePermutation,
+    corners: CornerPermutation,
+}
+
+impl CentrePermutation {
+    /// Slice turns are inferred from their axis.
+    /// The turn is taken to be a *clockwise* turn about that axis.
+    /// In particular,
+    /// - `FB => S`
+    /// - `RL => M'`
+    /// - `UD => E'`
+    pub fn from_normal_slice_turn(axis: Axis) -> Self {
+        match axis {
+            // Cycle U R D L
+            Axis::FB => CentrePermutation::new_unchecked([
+                CentreCubelet(F),
+                CentreCubelet(D),
+                CentreCubelet(R),
+                CentreCubelet(B),
+                CentreCubelet(U),
+                CentreCubelet(L),
+            ]),
+            // Cycle U B D F
+            Axis::RL => CentrePermutation::new_unchecked([
+                CentreCubelet(U),
+                CentreCubelet(R),
+                CentreCubelet(B),
+                CentreCubelet(D),
+                CentreCubelet(L),
+                CentreCubelet(F),
+            ]),
+            // Cycle F L B R
+            Axis::UD => CentrePermutation::new_unchecked([
+                CentreCubelet(L),
+                CentreCubelet(F),
+                CentreCubelet(U),
+                CentreCubelet(R),
+                CentreCubelet(B),
+                CentreCubelet(D),
+            ]),
+        }
+    }
+
+    /// Slice turns are inferred from their axis.
+    /// The turn is taken to be a *clockwise* turn about that axis.
+    /// In particular,
+    /// - `FB => S`
+    /// - `RL => M'`
+    /// - `UD => E'`
+    pub fn from_slice_turn(axis: Axis, rotation_type: RotationType) -> Self {
+        let s = Self::from_normal_slice_turn(axis);
+        match rotation_type {
+            RotationType::Normal => s,
+            RotationType::Double => s.op(s),
+            RotationType::Inverse => s.inverse(),
+        }
+    }
+}
 
 impl EdgePermutation {
     pub fn from_normal_face_turn(face: FaceType) -> Self {
@@ -209,6 +273,77 @@ impl EdgePermutation {
             RotationType::Inverse => s.inverse(),
         }
     }
+
+    /// Slice turns are inferred from their axis.
+    /// The turn is taken to be a *clockwise* turn about that axis.
+    /// In particular,
+    /// - `FB => S`
+    /// - `RL => M'`
+    /// - `UD => E'`
+    pub fn from_normal_slice_turn(axis: Axis) -> Self {
+        match axis {
+            // Cycle UL UR DR DL
+            Axis::FB => EdgePermutation::new_unchecked([
+                (EdgeCubelet(DR), CyclicGroup::new(1)),
+                (EdgeCubelet(UF), CyclicGroup::new(0)),
+                (EdgeCubelet(UR), CyclicGroup::new(1)),
+                (EdgeCubelet(UB), CyclicGroup::new(0)),
+                (EdgeCubelet(DL), CyclicGroup::new(1)),
+                (EdgeCubelet(DF), CyclicGroup::new(0)),
+                (EdgeCubelet(UL), CyclicGroup::new(1)),
+                (EdgeCubelet(DB), CyclicGroup::new(0)),
+                (EdgeCubelet(FR), CyclicGroup::new(0)),
+                (EdgeCubelet(FL), CyclicGroup::new(0)),
+                (EdgeCubelet(BR), CyclicGroup::new(0)),
+                (EdgeCubelet(BL), CyclicGroup::new(0)),
+            ]),
+            // Cycle UF UB DB DF
+            Axis::RL => EdgePermutation::new_unchecked([
+                (EdgeCubelet(UR), CyclicGroup::new(0)),
+                (EdgeCubelet(UB), CyclicGroup::new(1)),
+                (EdgeCubelet(UL), CyclicGroup::new(0)),
+                (EdgeCubelet(DB), CyclicGroup::new(1)),
+                (EdgeCubelet(DR), CyclicGroup::new(0)),
+                (EdgeCubelet(UF), CyclicGroup::new(1)),
+                (EdgeCubelet(DL), CyclicGroup::new(0)),
+                (EdgeCubelet(DF), CyclicGroup::new(1)),
+                (EdgeCubelet(FR), CyclicGroup::new(0)),
+                (EdgeCubelet(FL), CyclicGroup::new(0)),
+                (EdgeCubelet(BR), CyclicGroup::new(0)),
+                (EdgeCubelet(BL), CyclicGroup::new(0)),
+            ]),
+            // Cycle FR FL BL BR
+            Axis::UD => EdgePermutation::new_unchecked([
+                (EdgeCubelet(UR), CyclicGroup::new(0)),
+                (EdgeCubelet(UF), CyclicGroup::new(0)),
+                (EdgeCubelet(UL), CyclicGroup::new(0)),
+                (EdgeCubelet(UB), CyclicGroup::new(0)),
+                (EdgeCubelet(DR), CyclicGroup::new(0)),
+                (EdgeCubelet(DF), CyclicGroup::new(0)),
+                (EdgeCubelet(DL), CyclicGroup::new(0)),
+                (EdgeCubelet(DB), CyclicGroup::new(0)),
+                (EdgeCubelet(FL), CyclicGroup::new(1)),
+                (EdgeCubelet(BL), CyclicGroup::new(1)),
+                (EdgeCubelet(FR), CyclicGroup::new(1)),
+                (EdgeCubelet(BR), CyclicGroup::new(1)),
+            ]),
+        }
+    }
+
+    /// Slice turns are inferred from their axis.
+    /// The turn is taken to be a *clockwise* turn about that axis.
+    /// In particular,
+    /// - `FB => S`
+    /// - `RL => M'`
+    /// - `UD => E'`
+    pub fn from_slice_turn(axis: Axis, rotation_type: RotationType) -> Self {
+        let s = Self::from_normal_slice_turn(axis);
+        match rotation_type {
+            RotationType::Normal => s,
+            RotationType::Double => s.op(s),
+            RotationType::Inverse => s.inverse(),
+        }
+    }
 }
 
 impl CornerPermutation {
@@ -294,12 +429,87 @@ impl CornerPermutation {
     }
 }
 
+impl Magma for CubePermutation3 {
+    fn op(self, other: Self) -> Self {
+        Self {
+            centres: self.centres.op(other.centres),
+            edges: self.edges.op(other.edges),
+            corners: self.corners.op(other.corners),
+        }
+    }
+}
+
+impl Semigroup for CubePermutation3 {}
+
+impl InverseSemigroup for CubePermutation3 {
+    fn inverse(&self) -> Self {
+        Self {
+            centres: self.centres.inverse(),
+            edges: self.edges.inverse(),
+            corners: self.corners.inverse(),
+        }
+    }
+}
+
+impl Unital for CubePermutation3 {
+    fn identity() -> Self {
+        Self {
+            centres: CentrePermutation::identity(),
+            edges: EdgePermutation::identity(),
+            corners: CornerPermutation::identity(),
+        }
+    }
+}
+
+impl Display for CubePermutation3 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let c = self.corners.to_string();
+        let e = self.edges.to_string();
+        let x = self.centres.to_string();
+
+        // Concatenate each *line* of the strings together.
+        for ((c_line, e_line), x_line) in c
+            .lines()
+            .zip(e.lines())
+            .zip(x.lines().chain(std::iter::once("")))
+        {
+            writeln!(f, "{} {} {}", c_line, e_line, x_line)?;
+        }
+
+        Ok(())
+    }
+}
+
+impl CubePermutation3 {
+    pub fn from_face_turn(face: FaceType, rotation_type: RotationType) -> Self {
+        Self {
+            centres: CentrePermutation::identity(),
+            edges: EdgePermutation::from_face_turn(face, rotation_type),
+            corners: CornerPermutation::from_face_turn(face, rotation_type),
+        }
+    }
+
+    /// Slice turns are inferred from their axis.
+    /// The turn is taken to be a *clockwise* turn about that axis.
+    /// In particular,
+    /// - `FB => S`
+    /// - `RL => M'`
+    /// - `UD => E'`
+    pub fn from_slice_turn(axis: Axis, rotation_type: RotationType) -> Self {
+        Self {
+            centres: CentrePermutation::from_slice_turn(axis, rotation_type),
+            edges: EdgePermutation::from_slice_turn(axis, rotation_type),
+            corners: CornerPermutation::identity(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_group_operation() {
+    fn group_operation() {
         let e = CentrePermutation::identity();
         println!("{}", e);
         let rf = CentrePermutation::new_unchecked([
@@ -342,7 +552,7 @@ mod tests {
     }
 
     #[test]
-    fn test_edge_permutation() {
+    fn edge_permutation() {
         let e = EdgePermutation::identity();
         let g = EdgePermutation::new_unchecked([
             (EdgeCubelet(UF), CyclicGroup::new(0)),
@@ -363,7 +573,7 @@ mod tests {
     }
 
     #[test]
-    fn test_face_turn() {
+    fn face_turn() {
         let turn_f = EdgePermutation::from_face_turn(F, RotationType::Normal);
         let turn_f2 = EdgePermutation::new_unchecked([
             (EdgeCubelet(UR), CyclicGroup::new(0)),
@@ -428,7 +638,7 @@ mod tests {
     }
 
     #[test]
-    fn test_u_perm() {
+    fn u_perm() {
         // R' U R' U' R' U' R' U R U R2 is a U permutation.
         let moves = [
             EdgePermutation::from_face_turn(R, RotationType::Inverse),
@@ -465,7 +675,7 @@ mod tests {
     }
 
     #[test]
-    fn test_a_perm() {
+    fn a_perm() {
         // L2 D2 L' U' L D2 L' U L' is an A permutation.
         let moves = [
             CornerPermutation::from_face_turn(L, RotationType::Double),
@@ -487,15 +697,23 @@ mod tests {
         // It should also be the 3-cycle (BDL BDR BUL).
         assert_eq!(
             operation.act(&(CornerCubelet(BDL), CyclicGroup::new(0))),
-            (CornerCubelet(BDR), CyclicGroup::new(0))
+            (CornerCubelet(BDR), CyclicGroup::new(1))
         );
         assert_eq!(
             operation.act(&(CornerCubelet(BDR), CyclicGroup::new(0))),
-            (CornerCubelet(BUL), CyclicGroup::new(1))
+            (CornerCubelet(BUL), CyclicGroup::new(0))
         );
         assert_eq!(
-            operation.act(&(CornerCubelet(BUL), CyclicGroup::new(1))),
-            (CornerCubelet(BDL), CyclicGroup::new(0))
+            operation.act(&(CornerCubelet(BUL), CyclicGroup::new(0))),
+            (CornerCubelet(BDL), CyclicGroup::new(2))
         );
+    }
+
+    #[test]
+    fn h_perm() {
+        let m2 = CubePermutation3::from_slice_turn(Axis::RL, RotationType::Double);
+        let u = CubePermutation3::from_face_turn(U, RotationType::Normal);
+        let h = m2.op(u).op(m2).op(u).op(u).op(m2).op(u).op(m2);
+        assert_eq!(h.order(), 2);
     }
 }

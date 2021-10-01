@@ -10,7 +10,7 @@ use crate::{
 
 /// Represents a centre piece of an odd-sized cube.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct CentreCubelet(FaceType);
+pub struct CentreCubelet(pub FaceType);
 
 impl Display for CentreCubelet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -36,7 +36,7 @@ impl Enumerable for CentreCubelet {
 
 /// Represents one of 12 centred edge pieces of an odd-sized cube.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct EdgeCubelet(EdgeType);
+pub struct EdgeCubelet(pub EdgeType);
 
 impl Display for EdgeCubelet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -62,7 +62,7 @@ impl Enumerable for EdgeCubelet {
 
 /// Represents one of 8 corner pieces of a cube.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct CornerCubelet(CornerType);
+pub struct CornerCubelet(pub CornerType);
 
 impl Display for CornerCubelet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -105,7 +105,7 @@ pub type CornerPermutation = OrientedSymmetricGroup<CornerCubelet, 3>;
 
 /// Represents a permutation of a 3x3x3 cube.
 /// This is the direct product of a centre permutation, edge permutation, and corner permutation group.
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct CubePermutation3 {
     centres: CentrePermutation,
     edges: EdgePermutation,
@@ -537,6 +537,21 @@ impl CubePermutation3 {
             g = g.op(Self::from_move(mv));
         }
         g
+    }
+
+    /// Get a reference to the cube permutation's centres.
+    pub fn centres(&self) -> &CentrePermutation {
+        &self.centres
+    }
+
+    /// Get a reference to the cube permutation's edges.
+    pub fn edges(&self) -> &EdgePermutation {
+        &self.edges
+    }
+
+    /// Get a reference to the cube permutation's corners.
+    pub fn corners(&self) -> &CornerPermutation {
+        &self.corners
     }
 }
 

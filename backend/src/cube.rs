@@ -450,6 +450,7 @@ impl Move {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct MoveSequence {
     pub moves: Vec<Move>,
 }

@@ -8,6 +8,7 @@ mod group;
 mod permute;
 mod solve;
 mod utils;
+mod blockbuilding;
 
 use wasm_bindgen::prelude::*;
 

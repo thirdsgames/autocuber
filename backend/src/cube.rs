@@ -1,4 +1,4 @@
-use std::{fmt::Display, ops::Index, str::FromStr};
+use std::{collections::HashMap, fmt::Display, ops::Index, str::FromStr};
 use wasm_bindgen::{prelude::*, JsCast};
 
 /// Represents a *valid* (i.e. has all of the required pieces, not necessarily solvable) NxN cube.
@@ -284,7 +284,7 @@ impl CornerType {
 
 /// An axis on a cube.
 #[wasm_bindgen]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
 pub enum Axis {
     FB,
@@ -319,7 +319,7 @@ impl From<Colour> for FaceType {
 }
 
 #[wasm_bindgen]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RotationType {
     Normal,
     Double,
@@ -334,6 +334,35 @@ impl RotationType {
             RotationType::Inverse => RotationType::Normal,
         }
     }
+
+    pub fn rotations(self) -> i32 {
+        match self {
+            RotationType::Normal => 1,
+            RotationType::Double => 2,
+            RotationType::Inverse => -1,
+        }
+    }
+
+    /// None is returned if no rotation was required.
+    pub fn from_rotations(n: i32) -> Option<RotationType> {
+        match ((n % 4) + 4) % 4 {
+            0 => None,
+            1 => Some(RotationType::Normal),
+            2 => Some(RotationType::Double),
+            3 => Some(RotationType::Inverse),
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl Display for RotationType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RotationType::Normal => write!(f, ""),
+            RotationType::Double => write!(f, "2"),
+            RotationType::Inverse => write!(f, "'"),
+        }
+    }
 }
 
 /// Gives the inverse of a RotationType.
@@ -345,7 +374,7 @@ pub fn inverse_wasm(rot: RotationType) -> RotationType {
 }
 
 #[wasm_bindgen]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Move {
     pub axis: Axis,
     #[wasm_bindgen(js_name = rotationType)]
@@ -433,6 +462,36 @@ impl FromStr for Move {
     }
 }
 
+impl Display for Move {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match (self.start_depth, self.end_depth) {
+            (0, 1) => match self.axis {
+                FB => write!(f, "F{}", self.rotation_type),
+                RL => write!(f, "R{}", self.rotation_type),
+                UD => write!(f, "U{}", self.rotation_type),
+            },
+            (1, 2) => match self.axis {
+                FB => write!(f, "S{}", self.rotation_type),
+                RL => write!(f, "M{}", self.rotation_type.inverse()),
+                UD => write!(f, "E{}", self.rotation_type.inverse()),
+            },
+            (2, 3) => match self.axis {
+                FB => write!(f, "B{}", self.rotation_type.inverse()),
+                RL => write!(f, "L{}", self.rotation_type.inverse()),
+                UD => write!(f, "D{}", self.rotation_type.inverse()),
+            },
+            _ => {
+                // Fallback if we don't know how else to display the move:
+                write!(
+                    f,
+                    "{:?}{}-{}{}",
+                    self.axis, self.start_depth, self.end_depth, self.rotation_type
+                )
+            }
+        }
+    }
+}
+
 #[wasm_bindgen]
 impl Move {
     pub fn new(
@@ -457,7 +516,7 @@ impl Move {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MoveSequence {
     pub moves: Vec<Move>,
 }
@@ -478,6 +537,83 @@ impl InverseSemigroup for MoveSequence {
         Self {
             moves: self.moves.iter().rev().map(|mv| mv.inverse()).collect(),
         }
+    }
+}
+
+impl MoveSequence {
+    pub fn canonicalise(self) -> Self {
+        if self.moves.is_empty() {
+            return self;
+        }
+
+        let mut moves = Vec::new();
+
+        // If two consecutive moves have the same axis, try to collapse them into the same real move.
+        let mut current_axis = self.moves[0].axis;
+        let mut current_axis_moves = Vec::<Move>::new();
+
+        let mut process_axis = |current_axis: Axis, current_axis_moves: Vec<Move>| {
+            // Canonicalise the list of current axis moves, since they all must commute.
+            let mut turns_by_slice = HashMap::<usize, i32>::new();
+            for mv in current_axis_moves {
+                for slice in mv.start_depth..mv.end_depth {
+                    *turns_by_slice.entry(slice).or_default() += mv.rotation_type.rotations();
+                }
+            }
+            // Convert this back into a move sequence.
+            // For each continuous block of slices rotating the same amount, convert it into a move.
+            let mut new_moves = Vec::new();
+            let (mut expected_slice, mut expected_rotations) = {
+                let (&k, &v) = turns_by_slice.iter().next().unwrap();
+                (k, v)
+            };
+            let mut current_start_slice = expected_slice;
+
+            for (slice, rotations) in turns_by_slice {
+                if slice == expected_slice && rotations == expected_rotations {
+                    // Continue accepting more slices on this wide move.
+                    expected_slice += 1;
+                } else {
+                    // Finish this wide move.
+                    if let Some(rotation_type) = RotationType::from_rotations(expected_rotations) {
+                        new_moves.push(Move {
+                            axis: current_axis,
+                            rotation_type,
+                            start_depth: current_start_slice,
+                            end_depth: expected_slice,
+                        });
+                    }
+
+                    // Set up the current start slice, and expected next slice and rotations.
+                    current_start_slice = slice;
+                    expected_slice = slice + 1;
+                    expected_rotations = rotations;
+                }
+            }
+
+            if let Some(rotation_type) = RotationType::from_rotations(expected_rotations) {
+                new_moves.push(Move {
+                    axis: current_axis,
+                    rotation_type,
+                    start_depth: current_start_slice,
+                    end_depth: expected_slice,
+                });
+            }
+
+            moves.extend(new_moves);
+        };
+
+        for mv in self.moves {
+            if mv.axis != current_axis {
+                process_axis(current_axis, std::mem::take(&mut current_axis_moves));
+                current_axis = mv.axis;
+            }
+            current_axis_moves.push(mv);
+        }
+        process_axis(current_axis, std::mem::take(&mut current_axis_moves));
+
+        moves.extend(current_axis_moves);
+        Self { moves }
     }
 }
 
@@ -506,6 +642,18 @@ impl FromStr for MoveSequence {
             result.moves.push(value.parse()?);
         }
         Ok(result)
+    }
+}
+
+impl Display for MoveSequence {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (i, mv) in self.moves.iter().enumerate() {
+            if i != 0 {
+                write!(f, " ")?;
+            }
+            write!(f, "{}", mv)?;
+        }
+        Ok(())
     }
 }
 

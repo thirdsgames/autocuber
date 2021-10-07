@@ -92,7 +92,7 @@ impl Default for TrivialGroup {
 ///
 /// `Ord` is not derived, since the elements of the cyclic group form a circle.
 /// Therefore, there is no well-defined partial order on the elements.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct CyclicGroup<const K: u8>(u8);
 
 impl<const K: u8> CyclicGroup<K> {

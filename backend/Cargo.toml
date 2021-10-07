@@ -28,6 +28,7 @@ wee_alloc = { version = "0.4.5", optional = true }
 
 web-sys = { version = "0.3.55", features = ["console"] }
 js-sys = "0.3.55"
+priority-queue = "1.2.0"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.28"

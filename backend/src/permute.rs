@@ -9,7 +9,7 @@ use crate::{
 };
 
 /// Represents a centre piece of an odd-sized cube.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct CentreCubelet(pub FaceType);
 
 impl Display for CentreCubelet {
@@ -35,7 +35,7 @@ impl Enumerable for CentreCubelet {
 }
 
 /// Represents one of 12 centred edge pieces of an odd-sized cube.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct EdgeCubelet(pub EdgeType);
 
 impl Display for EdgeCubelet {
@@ -61,7 +61,7 @@ impl Enumerable for EdgeCubelet {
 }
 
 /// Represents one of 8 corner pieces of a cube.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct CornerCubelet(pub CornerType);
 
 impl Display for CornerCubelet {

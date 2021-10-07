@@ -17,7 +17,7 @@ pub struct Face<const N: usize> {
 }
 
 /// The colour of a face on an NxN cube.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[repr(u8)]
 // Colours are often not constructed directly, but converted into from a face type.
 #[allow(dead_code)]
@@ -46,7 +46,7 @@ impl Colour {
 
 /// A face on a cube.
 /// Represented in Singmaster notation.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum FaceType {
     F,
@@ -106,7 +106,7 @@ impl Enumerable for FaceType {
 /// One of twelve edge types on a cube.
 /// Edge names are derived from 2-axis (RL, UD) edge orientation.
 /// The "key sticker" is written first.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[repr(u8)]
 #[rustfmt::skip]
 pub enum EdgeType {
@@ -207,7 +207,7 @@ impl EdgeType {
 
 /// One of twelve corner types on a cube.
 /// Corner types are named according to the member of each axis: FB, UD, RL.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[repr(u8)]
 #[rustfmt::skip]
 pub enum CornerType {
@@ -284,7 +284,7 @@ impl CornerType {
 
 /// An axis on a cube.
 #[wasm_bindgen]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum Axis {
     FB,
@@ -319,7 +319,7 @@ impl From<Colour> for FaceType {
 }
 
 #[wasm_bindgen]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum RotationType {
     Normal,
     Double,
@@ -345,7 +345,7 @@ pub fn inverse_wasm(rot: RotationType) -> RotationType {
 }
 
 #[wasm_bindgen]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Move {
     pub axis: Axis,
     #[wasm_bindgen(js_name = rotationType)]
@@ -448,11 +448,37 @@ impl Move {
             end_depth,
         }
     }
+
+    pub fn inverse(self) -> Self {
+        Self {
+            rotation_type: self.rotation_type.inverse(),
+            ..self
+        }
+    }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MoveSequence {
     pub moves: Vec<Move>,
+}
+
+/// As a magma, move sequences are treated like a free group.
+impl Magma for MoveSequence {
+    fn op(self, other: Self) -> Self {
+        Self {
+            moves: other.moves.into_iter().chain(self.moves).collect(),
+        }
+    }
+}
+
+impl Semigroup for MoveSequence {}
+
+impl InverseSemigroup for MoveSequence {
+    fn inverse(&self) -> Self {
+        Self {
+            moves: self.moves.iter().rev().map(|mv| mv.inverse()).collect(),
+        }
+    }
 }
 
 #[wasm_bindgen]
@@ -755,7 +781,7 @@ enum FaceSegment {
 }
 use FaceSegment::*;
 
-use crate::group::{CyclicGroup, Enumerable};
+use crate::group::{CyclicGroup, Enumerable, InverseSemigroup, Magma, Semigroup};
 
 // The range is there as an optimisation for the compiler, since we
 // know the size of each array at compile time. It also helps unify

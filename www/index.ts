@@ -172,6 +172,7 @@ animate();
 }
 
 // Create the history div
+let currentAlgStep = -1;
 {
     const history = document.getElementById('history');
     const historyHeader = document.createElement('h1');
@@ -183,6 +184,7 @@ animate();
         button.addEventListener('click', (_ev) => {
             if (!cube.animating) {
                 cube.reset();
+                currentAlgStep = -1;
             }
         });
         button.innerText = 'Reset';
@@ -194,7 +196,6 @@ animate();
     history.appendChild(inner);
 }
 
-let currentAlgStep = -1;
 function processHistory(moveSequence: Array<Move>) {
     currentAlgStep = -1;
     // Adds listeners to each history element.

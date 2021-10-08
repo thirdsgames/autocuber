@@ -189,16 +189,9 @@ animate();
         history.appendChild(button);
     }
 
-    {
-        const button = document.createElement('button');
-        button.addEventListener('click', (_ev) => {
-            if (!cube.animating) {
-                cube.performAlg(wasm.gen_alg());
-            }
-        });
-        button.innerText = 'Perform Algorithm';
-        history.appendChild(button);
-    }
+    const inner = document.createElement('div');
+    inner.id = 'history-action';
+    history.appendChild(inner);
 }
 
 // WASM
@@ -206,6 +199,5 @@ animate();
 const universe = wasm.init();
 console.log(universe);
 
-wasm.greet();
-console.log(wasm.gen_alg());
+wasm.action_to_div();
 universe.free();

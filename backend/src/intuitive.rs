@@ -1,7 +1,7 @@
+use instant::Instant;
 use std::{
     collections::{HashMap, VecDeque},
     hash::Hash,
-    time::Instant,
 };
 
 use priority_queue::PriorityQueue;
@@ -10,6 +10,7 @@ use crate::{
     cube::MoveSequence,
     group::{InverseSemigroup, Magma, Unital},
     permute::CubePermutation3,
+    utils::log,
 };
 
 /// S is a 'signature' of the current cube state.
@@ -104,7 +105,7 @@ where
 
         let end_time = Instant::now();
         let duration = end_time - start_time;
-        println!(
+        log!(
             "Generated sequence graph {} with {} nodes in {} ms",
             graph_name,
             this.graph.len(),
@@ -188,7 +189,7 @@ where
 
         let end_time = Instant::now();
         let duration = end_time - start_time;
-        println!(
+        log!(
             "Searched sequence graph {} in {} ms",
             self.graph_name,
             duration.as_millis()

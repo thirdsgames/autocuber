@@ -26,10 +26,19 @@ console_error_panic_hook = { version = "0.1.6", optional = true }
 # Unfortunately, `wee_alloc` requires nightly Rust when targeting wasm for now.
 wee_alloc = { version = "0.4.5", optional = true }
 
-web-sys = { version = "0.3.55", features = ["console"] }
+web-sys = { version = "0.3.55", features = [
+    "console",
+    "Document",
+    "Element",
+    "HtmlElement",
+    "Node",
+    "Window",
+    "Range",
+] }
 js-sys = "0.3.55"
 priority-queue = "1.2.0"
 lazy_static = "1.4.0"
+instant = { version = "0.1.11", features = [ "wasm-bindgen" ] }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.28"

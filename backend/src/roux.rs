@@ -505,7 +505,7 @@ pub fn solve(mut permutation: CubePermutation3) -> Option<Action> {
 
     Some(Action {
         reason: ActionReason::Solve,
-        description: Some("Complete roux solve".to_string()),
+        description: Some("Roux method".to_string()),
         steps: ActionSteps::Sequence { actions: steps },
     })
 }

@@ -5,11 +5,11 @@
 
 mod cube;
 mod group;
+mod intuitive;
 mod permute;
+mod roux;
 mod solve;
 mod utils;
-mod intuitive;
-mod roux;
 
 use wasm_bindgen::prelude::*;
 
@@ -33,24 +33,4 @@ pub struct Universe;
 pub fn init() -> Universe {
     utils::set_panic_hook();
     Universe
-}
-
-#[wasm_bindgen]
-pub fn greet() {
-    // alert("Hello, autocuber!");
-    let mut cube = Cube::<3>::new();
-    let alg = "M2 U2 M2 U2".parse::<MoveSequence>().unwrap();
-    for mv in alg.moves {
-        cube = cube.perform(utils::dbg2!(mv));
-        utils::log!("cube:\n{}", cube);
-    }
-}
-
-/// Generate some algorithm that we can perform on the cube.
-#[wasm_bindgen]
-pub fn gen_alg() -> MoveSequenceConv {
-    "R' U L U' R U2' L' U L U2 L'"
-        .parse::<MoveSequence>()
-        .unwrap()
-        .into()
 }

@@ -185,7 +185,11 @@ a {
 
 #history-action {
     max-height: 600px;
+    line-height: 1;
     overflow: auto;
+    > ol > li > p {
+        color: #00ffc4;
+    }
 }
 
 /* ==========================================================================

@@ -138,12 +138,14 @@ fn add_action_to_div(action: Action, document: &Document, div: &Element) -> Resu
             }
             if !collated_moves.is_empty() {
                 let li = document.create_element("li")?;
-                li.set_text_content(Some(
+                let p = document.create_element("p")?;
+                p.set_text_content(Some(
                     &MoveSequence {
                         moves: std::mem::take(&mut collated_moves),
                     }
                     .to_string(),
                 ));
+                li.append_child(&p)?;
                 list.append_child(&li)?;
             }
             div.append_child(&list)?;

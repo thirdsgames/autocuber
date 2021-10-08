@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, VecDeque},
     hash::Hash,
+    time::Instant,
 };
 
 use priority_queue::PriorityQueue;
@@ -16,6 +17,7 @@ use crate::{
 #[derive(Debug)]
 pub struct SequenceGraph<S> {
     graph: HashMap<S, State<S>>,
+    graph_name: &'static str,
 }
 
 #[derive(Debug)]
@@ -32,15 +34,6 @@ pub struct SequenceSolver<S> {
     node_info: HashMap<S, MoveSequence>,
 }
 
-impl<S> SequenceGraph<S> {
-    /// Create a new *empty* sequence graph.
-    fn empty() -> Self {
-        Self {
-            graph: HashMap::new(),
-        }
-    }
-}
-
 impl<S> SequenceGraph<S>
 where
     S: Eq + Hash + Clone,
@@ -48,8 +41,17 @@ where
     /// Create a new sequence graph from the given generating set.
     /// For each generated move sequence, we generate the signature of the resulting cube permutation.
     /// The signature function should generate the signature of a cube permutation.
-    pub fn new(gen_set: Vec<MoveSequence>, signature: impl Fn(CubePermutation3) -> S) -> Self {
-        let mut this = Self::empty();
+    pub fn new(
+        graph_name: &'static str,
+        gen_set: Vec<MoveSequence>,
+        signature: impl Fn(CubePermutation3) -> S,
+    ) -> Self {
+        let start_time = Instant::now();
+
+        let mut this = Self {
+            graph: HashMap::new(),
+            graph_name,
+        };
 
         // Generate double and inverse moves.
         let mut real_gen_set = gen_set
@@ -100,6 +102,14 @@ where
                 });
         }
 
+        let end_time = Instant::now();
+        let duration = end_time - start_time;
+        println!(
+            "Generated sequence graph {} in {} ms",
+            graph_name,
+            duration.as_millis()
+        );
+
         this
     }
 
@@ -116,6 +126,8 @@ where
         target_signature: S,
         metric: impl Fn(&MoveSequence) -> u64,
     ) -> SequenceSolver<S> {
+        let start_time = Instant::now();
+
         // The set of unvisited nodes, ordered by current distance.
         // The priority of an element is given by `std::u64::MAX` minus the distance.
         let mut unvisited_queue = self
@@ -172,6 +184,14 @@ where
                 }
             }
         }
+
+        let end_time = Instant::now();
+        let duration = end_time - start_time;
+        println!(
+            "Searched sequence graph {} in {} ms",
+            self.graph_name,
+            duration.as_millis()
+        );
 
         SequenceSolver { node_info }
     }

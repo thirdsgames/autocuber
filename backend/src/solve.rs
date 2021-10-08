@@ -1,4 +1,4 @@
-use crate::Move;
+use crate::{cube::MoveSequence, Move};
 
 /// An action is something you can do on a cube,
 /// and that you have a reason for doing.
@@ -14,8 +14,12 @@ pub struct Action {
 
 #[derive(Debug)]
 pub enum ActionReason {
+    /// This action was a full solve.
+    Solve,
     /// This action was one step in a solve method.
-    SolveStep { step_name: String },
+    SolveStep { step_name: &'static str },
+    /// This action was performed intuitively
+    Intuitive,
 }
 
 /// TODO: Add conjugate, commutator, and algorithmic action steps.
@@ -32,4 +36,20 @@ pub enum ActionSteps {
     Sequence {
         actions: Vec<Action>,
     },
+}
+
+impl ActionSteps {
+    pub fn move_sequence(&self) -> MoveSequence {
+        match self {
+            ActionSteps::Nothing => MoveSequence { moves: Vec::new() },
+            ActionSteps::Move { mv } => MoveSequence { moves: vec![*mv] },
+            ActionSteps::Sequence { actions } => MoveSequence {
+                moves: actions
+                    .iter()
+                    .map(|act| act.steps.move_sequence().moves)
+                    .flatten()
+                    .collect(),
+            },
+        }
+    }
 }

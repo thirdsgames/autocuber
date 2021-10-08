@@ -105,8 +105,9 @@ where
         let end_time = Instant::now();
         let duration = end_time - start_time;
         println!(
-            "Generated sequence graph {} in {} ms",
+            "Generated sequence graph {} with {} nodes in {} ms",
             graph_name,
+            this.graph.len(),
             duration.as_millis()
         );
 

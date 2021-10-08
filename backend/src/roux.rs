@@ -3,9 +3,10 @@ use crate::{
         Axis, FaceType, Move, MoveSequence,
         {CornerType::*, EdgeType::*},
     },
-    group::{CyclicGroup, GroupAction, Unital},
+    group::{CyclicGroup, GroupAction, Magma, Unital},
     intuitive::{SequenceGraph, SequenceSolver},
     permute::{CentreCubelet, CornerCubelet, CubePermutation3, EdgeCubelet},
+    solve::{Action, ActionReason, ActionSteps},
 };
 
 type RouxEdgeSignature = (EdgeCubelet, CyclicGroup<2>);
@@ -265,12 +266,34 @@ lazy_static::lazy_static! {
     };
 }
 
+fn move_sequence_to_intuitive_action(step_name: &'static str, seq: MoveSequence) -> Action {
+    let actions = seq
+        .moves
+        .iter()
+        .map(|&mv| Action {
+            reason: ActionReason::Intuitive,
+            description: None,
+            steps: ActionSteps::Move { mv },
+        })
+        .collect::<Vec<_>>();
+
+    Action {
+        reason: ActionReason::SolveStep { step_name },
+        description: None,
+        steps: ActionSteps::Sequence { actions },
+    }
+}
+
 pub fn first_edge(permutation: CubePermutation3) -> Option<&'static MoveSequence> {
     ROUX_FIRST_EDGE.solve(
         &permutation
             .edges()
             .act(&(EdgeCubelet(DL), CyclicGroup::identity())),
     )
+}
+
+pub fn first_edge_action(permutation: CubePermutation3) -> Option<Action> {
+    first_edge(permutation).map(|seq| move_sequence_to_intuitive_action("First edge", seq.clone()))
 }
 
 pub fn first_pair(permutation: CubePermutation3) -> Option<&'static MoveSequence> {
@@ -284,6 +307,10 @@ pub fn first_pair(permutation: CubePermutation3) -> Option<&'static MoveSequence
     ))
 }
 
+pub fn first_pair_action(permutation: CubePermutation3) -> Option<Action> {
+    first_pair(permutation).map(|seq| move_sequence_to_intuitive_action("First pair", seq.clone()))
+}
+
 pub fn second_pair(permutation: CubePermutation3) -> Option<&'static MoveSequence> {
     ROUX_SECOND_PAIR.solve(&(
         permutation
@@ -295,12 +322,22 @@ pub fn second_pair(permutation: CubePermutation3) -> Option<&'static MoveSequenc
     ))
 }
 
+pub fn second_pair_action(permutation: CubePermutation3) -> Option<Action> {
+    second_pair(permutation)
+        .map(|seq| move_sequence_to_intuitive_action("Second pair", seq.clone()))
+}
+
 pub fn second_edge(permutation: CubePermutation3) -> Option<&'static MoveSequence> {
     ROUX_SECOND_EDGE.solve(
         &permutation
             .edges()
             .act(&(EdgeCubelet(DR), CyclicGroup::identity())),
     )
+}
+
+pub fn second_edge_action(permutation: CubePermutation3) -> Option<Action> {
+    second_edge(permutation)
+        .map(|seq| move_sequence_to_intuitive_action("Second edge", seq.clone()))
 }
 
 pub fn third_pair(permutation: CubePermutation3) -> Option<&'static MoveSequence> {
@@ -314,6 +351,10 @@ pub fn third_pair(permutation: CubePermutation3) -> Option<&'static MoveSequence
     ))
 }
 
+pub fn third_pair_action(permutation: CubePermutation3) -> Option<Action> {
+    third_pair(permutation).map(|seq| move_sequence_to_intuitive_action("Third pair", seq.clone()))
+}
+
 pub fn fourth_pair(permutation: CubePermutation3) -> Option<&'static MoveSequence> {
     ROUX_FOURTH_PAIR.solve(&(
         permutation
@@ -323,6 +364,11 @@ pub fn fourth_pair(permutation: CubePermutation3) -> Option<&'static MoveSequenc
             .corners()
             .act(&(CornerCubelet(BDR), CyclicGroup::identity())),
     ))
+}
+
+pub fn fourth_pair_action(permutation: CubePermutation3) -> Option<Action> {
+    fourth_pair(permutation)
+        .map(|seq| move_sequence_to_intuitive_action("Fourth pair", seq.clone()))
 }
 
 pub fn cmll(permutation: CubePermutation3) -> Option<MoveSequence> {
@@ -348,6 +394,10 @@ pub fn cmll(permutation: CubePermutation3) -> Option<MoveSequence> {
         }
         cmll
     })
+}
+
+pub fn cmll_action(permutation: CubePermutation3) -> Option<Action> {
+    cmll(permutation).map(|seq| move_sequence_to_intuitive_action("CMLL", seq))
 }
 
 pub fn eolr(permutation: CubePermutation3) -> Option<&'static MoveSequence> {
@@ -399,6 +449,10 @@ pub fn eolr(permutation: CubePermutation3) -> Option<&'static MoveSequence> {
     ))
 }
 
+pub fn eolr_action(permutation: CubePermutation3) -> Option<Action> {
+    eolr(permutation).map(|seq| move_sequence_to_intuitive_action("EOLR", seq.clone()))
+}
+
 pub fn l4e(permutation: CubePermutation3) -> Option<&'static MoveSequence> {
     L4E.solve(&(
         [
@@ -423,10 +477,43 @@ pub fn l4e(permutation: CubePermutation3) -> Option<&'static MoveSequence> {
     ))
 }
 
+pub fn l4e_action(permutation: CubePermutation3) -> Option<Action> {
+    l4e(permutation).map(|seq| move_sequence_to_intuitive_action("Last four edges", seq.clone()))
+}
+
+pub fn solve(mut permutation: CubePermutation3) -> Option<Action> {
+    let mut steps = Vec::new();
+
+    // Can't use impl FnOnce or anything, so just use fn.
+    let mut add_step = |func: fn(CubePermutation3) -> Option<Action>| -> Option<()> {
+        let step = func(permutation)?;
+        permutation =
+            CubePermutation3::from_move_sequence(step.steps.move_sequence()).op(permutation);
+        steps.push(step);
+        Some(())
+    };
+
+    add_step(first_edge_action);
+    add_step(first_pair_action);
+    add_step(second_pair_action);
+    add_step(second_edge_action);
+    add_step(third_pair_action);
+    add_step(fourth_pair_action);
+    add_step(cmll_action);
+    add_step(eolr_action);
+    add_step(l4e_action);
+
+    Some(Action {
+        reason: ActionReason::Solve,
+        description: Some("Complete roux solve".to_string()),
+        steps: ActionSteps::Sequence { actions: steps },
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
-        group::{CyclicGroup, GroupAction, InverseSemigroup, Magma},
+        group::{CyclicGroup, GroupAction, Magma},
         permute::{CubePermutation3, EdgeCubelet},
     };
 
@@ -461,59 +548,12 @@ mod tests {
                 .parse()
                 .unwrap();
 
-        let mut permutation = CubePermutation3::from_move_sequence(scramble);
+        let permutation = CubePermutation3::from_move_sequence(scramble);
+        let solution = solve(permutation).unwrap();
+        println!("Solution: {:#?}", solution);
+        let final_permutation =
+            CubePermutation3::from_move_sequence(solution.steps.move_sequence()).op(permutation);
 
-        // Solve the first edge.
-        let solution_first_edge = first_edge(permutation).unwrap();
-        println!("First edge: {}", solution_first_edge);
-        permutation =
-            CubePermutation3::from_move_sequence(solution_first_edge.clone()).op(permutation);
-
-        // Solve the first pair.
-        let solution_first_pair = first_pair(permutation).unwrap();
-        println!("First pair: {}", solution_first_pair);
-        permutation =
-            CubePermutation3::from_move_sequence(solution_first_pair.clone()).op(permutation);
-
-        // Solve the second pair.
-        let solution_second_pair = second_pair(permutation).unwrap();
-        println!("Second pair: {}", solution_second_pair);
-        permutation =
-            CubePermutation3::from_move_sequence(solution_second_pair.clone()).op(permutation);
-
-        // Solve the second edge.
-        let solution_second_edge = second_edge(permutation).unwrap();
-        println!("Second edge: {}", solution_second_edge);
-        permutation =
-            CubePermutation3::from_move_sequence(solution_second_edge.clone()).op(permutation);
-
-        // Solve the third pair.
-        let solution_third_pair = third_pair(permutation).unwrap();
-        println!("Third pair: {}", solution_third_pair);
-        permutation =
-            CubePermutation3::from_move_sequence(solution_third_pair.clone()).op(permutation);
-
-        // Solve the fourth pair.
-        let solution_fourth_pair = fourth_pair(permutation).unwrap();
-        println!("Fourth pair: {}", solution_fourth_pair);
-        permutation =
-            CubePermutation3::from_move_sequence(solution_fourth_pair.clone()).op(permutation);
-
-        // Solve CMLL.
-        let solution_cmll = cmll(permutation).unwrap();
-        println!("CMLL: {}", solution_cmll);
-        permutation = CubePermutation3::from_move_sequence(solution_cmll).op(permutation);
-
-        // Solve EOLR.
-        let solution_eolr = eolr(permutation).unwrap();
-        println!("EOLR: {}", solution_eolr);
-        permutation = CubePermutation3::from_move_sequence(solution_eolr.clone()).op(permutation);
-
-        // Solve L4E.
-        let solution_l4e = l4e(permutation).unwrap();
-        println!("L4E: {}", solution_l4e);
-        permutation = CubePermutation3::from_move_sequence(solution_l4e.clone()).op(permutation);
-
-        assert_eq!(permutation, CubePermutation3::identity());
+        assert_eq!(final_permutation, CubePermutation3::identity());
     }
 }

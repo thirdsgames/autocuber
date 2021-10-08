@@ -194,10 +194,37 @@ animate();
     history.appendChild(inner);
 }
 
+let currentAlgStep = -1;
+function processHistory(moveSequence: Array<Move>) {
+    currentAlgStep = -1;
+    // Adds listeners to each history element.
+    // When clicked, they navigate to that move in the sequence.
+    const historyAction = document.getElementById('history-action');
+    const moves = Array.from(historyAction.getElementsByClassName('history-move'));
+    moves.forEach((element, i) => {
+        element.addEventListener('click', (_ev) => {
+            if (!cube.animating) {
+                if (i > currentAlgStep) {
+                    cube.performAlg(moveSequence.slice(currentAlgStep + 1, i + 1));
+                    currentAlgStep = i;
+                } else if (i < currentAlgStep) {
+                    const slice = moveSequence
+                        .slice(i + 1, currentAlgStep + 1)
+                        .reverse()
+                        .map((mv) => mv.clone_move().inverse());
+                    cube.performAlg(slice);
+                    currentAlgStep = i;
+                }
+            }
+        });
+    });
+}
+
 // WASM
 
 const universe = wasm.init();
 console.log(universe);
 
-wasm.action_to_div();
+processHistory(wasm.action_to_div());
+
 universe.free();

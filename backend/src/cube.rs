@@ -514,6 +514,10 @@ impl Move {
             ..self
         }
     }
+
+    pub fn clone_move(&self) -> Self {
+        *self
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

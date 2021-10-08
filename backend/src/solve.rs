@@ -1,4 +1,4 @@
-use crate::{cube::MoveSequence, permute::CubePermutation3, Move};
+use crate::{cube::MoveSequence, permute::CubePermutation3, Move, MoveSequenceConv};
 use wasm_bindgen::prelude::*;
 use web_sys::{Document, Element};
 
@@ -18,6 +18,8 @@ pub struct Action {
 pub enum ActionReason {
     /// This action was a full solve.
     Solve,
+    /// This action was a full shuffle.
+    Shuffle,
     /// This action was one step in a solve method.
     SolveStep { step_name: &'static str },
     /// This action was performed intuitively
@@ -50,31 +52,70 @@ impl ActionSteps {
     }
 }
 
+pub fn move_sequence_to_intuitive_action(step_name: &'static str, seq: MoveSequence) -> Action {
+    let actions = seq
+        .moves
+        .iter()
+        .map(|&mv| Action {
+            reason: ActionReason::Intuitive,
+            description: None,
+            steps: ActionSteps::Move { mv },
+        })
+        .collect::<Vec<_>>();
+
+    Action {
+        reason: ActionReason::SolveStep { step_name },
+        description: None,
+        steps: ActionSteps::Sequence { actions },
+    }
+}
+
 #[wasm_bindgen]
 #[allow(dead_code)]
-pub fn action_to_div() {
+pub fn action_to_div() -> MoveSequenceConv {
     let window = web_sys::window().expect("no global `window` exists");
     let document = window.document().expect("should have a document on window");
     let history = document.get_element_by_id("history-action").unwrap();
 
-    let action = crate::roux::solve(CubePermutation3::from_move_sequence(
-        "U2 B D' B U2 L F' D B' U2 D R' U2 B R2 D' B' D2 L B2 F2 U D2 F B2"
-            .parse()
-            .unwrap(),
-    ))
-    .unwrap();
+    let scramble = "U2 B D' B U2 L F' D B' U2 D R' U2 B R2 D' B' D2 L B2 F2 U D2 F B2"
+        .parse::<MoveSequence>()
+        .unwrap();
+    let action =
+        crate::roux::solve(CubePermutation3::from_move_sequence(scramble.clone())).unwrap();
 
     // Clear the history div.
     let range = document.create_range().unwrap();
     range.select_node_contents(&history).unwrap();
     range.delete_contents().unwrap();
 
+    let seq = MoveSequence {
+        moves: scramble
+            .moves
+            .iter()
+            .cloned()
+            .chain(action.steps.move_sequence().moves)
+            .collect(),
+    };
+
+    add_action_to_div(
+        Action {
+            reason: ActionReason::Shuffle,
+            description: None,
+            ..move_sequence_to_intuitive_action("", scramble)
+        },
+        &document,
+        &history,
+    )
+    .unwrap();
     add_action_to_div(action, &document, &history).unwrap();
+
+    seq.into()
 }
 
 fn add_action_to_div(action: Action, document: &Document, div: &Element) -> Result<(), JsValue> {
     let reason = match &action.reason {
         ActionReason::Solve => Some("Solve the cube".to_string()),
+        ActionReason::Shuffle => Some("Shuffle the cube".to_string()),
         ActionReason::SolveStep { step_name } => Some(step_name.to_string()),
         ActionReason::Intuitive => None,
     };
@@ -95,9 +136,10 @@ fn add_action_to_div(action: Action, document: &Document, div: &Element) -> Resu
 
     match action.steps {
         ActionSteps::Move { mv } => {
-            let p = document.create_element("p")?;
-            p.set_text_content(Some(&mv.to_string()));
-            div.append_child(&p)?;
+            let span = document.create_element("span")?;
+            span.set_text_content(Some(&mv.to_string()));
+            span.set_class_name("history-move");
+            div.append_child(&span)?;
         }
         ActionSteps::Sequence { actions } => {
             let list = document.create_element(match &action.reason {
@@ -121,12 +163,19 @@ fn add_action_to_div(action: Action, document: &Document, div: &Element) -> Resu
                         // But first, add the collated moves.
                         if !collated_moves.is_empty() {
                             let li = document.create_element("li")?;
-                            li.set_text_content(Some(
-                                &MoveSequence {
-                                    moves: std::mem::take(&mut collated_moves),
+                            for (i, mv) in
+                                std::mem::take(&mut collated_moves).into_iter().enumerate()
+                            {
+                                if i != 0 {
+                                    let span = document.create_element("span")?;
+                                    span.set_text_content(Some(" "));
+                                    li.append_child(&span)?;
                                 }
-                                .to_string(),
-                            ));
+                                let span = document.create_element("span")?;
+                                span.set_text_content(Some(&mv.to_string()));
+                                span.set_class_name("history-move");
+                                li.append_child(&span)?;
+                            }
                             list.append_child(&li)?;
                         }
 
@@ -138,14 +187,17 @@ fn add_action_to_div(action: Action, document: &Document, div: &Element) -> Resu
             }
             if !collated_moves.is_empty() {
                 let li = document.create_element("li")?;
-                let p = document.create_element("p")?;
-                p.set_text_content(Some(
-                    &MoveSequence {
-                        moves: std::mem::take(&mut collated_moves),
+                for (i, mv) in std::mem::take(&mut collated_moves).into_iter().enumerate() {
+                    if i != 0 {
+                        let span = document.create_element("span")?;
+                        span.set_text_content(Some(" "));
+                        li.append_child(&span)?;
                     }
-                    .to_string(),
-                ));
-                li.append_child(&p)?;
+                    let span = document.create_element("span")?;
+                    span.set_text_content(Some(&mv.to_string()));
+                    span.set_class_name("history-move");
+                    li.append_child(&span)?;
+                }
                 list.append_child(&li)?;
             }
             div.append_child(&list)?;

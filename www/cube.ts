@@ -159,7 +159,10 @@ export default class Cube {
             // no default
         }
 
-        move.free();
+        // Moves can be copied on the JS side.
+        // The memory allocation footprint is small enough that we don't care about
+        // leaking single move objects.
+        // move.free();
     }
 
     animating: boolean = false;

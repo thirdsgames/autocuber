@@ -6,7 +6,7 @@ use crate::{
     group::{CyclicGroup, GroupAction, Magma, Unital},
     intuitive::{SequenceGraph, SequenceSolver},
     permute::{CentreCubelet, CornerCubelet, CubePermutation3, EdgeCubelet},
-    solve::{Action, ActionReason, ActionSteps},
+    solve::{move_sequence_to_intuitive_action, Action, ActionReason, ActionSteps},
 };
 
 type RouxEdgeSignature = (EdgeCubelet, CyclicGroup<2>);
@@ -264,24 +264,6 @@ lazy_static::lazy_static! {
             seq.moves.len() as u64
         })
     };
-}
-
-fn move_sequence_to_intuitive_action(step_name: &'static str, seq: MoveSequence) -> Action {
-    let actions = seq
-        .moves
-        .iter()
-        .map(|&mv| Action {
-            reason: ActionReason::Intuitive,
-            description: None,
-            steps: ActionSteps::Move { mv },
-        })
-        .collect::<Vec<_>>();
-
-    Action {
-        reason: ActionReason::SolveStep { step_name },
-        description: None,
-        steps: ActionSteps::Sequence { actions },
-    }
 }
 
 pub fn first_edge(permutation: CubePermutation3) -> Option<&'static MoveSequence> {

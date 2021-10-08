@@ -186,11 +186,27 @@ a {
 
 #history-action {
     max-height: 600px;
-    line-height: 1;
+    // line-height: 1;
     overflow: auto;
+
     > ol > li > p {
         color: #00ffc4;
     }
+
+    li {
+        margin: 0 0;
+    }
+}
+
+.history-move {
+    color: rgb(156, 146, 152);
+    padding: 4px;
+    cursor: pointer;
+}
+
+.selected-history-move {
+    color: rgb(12, 12, 12);
+    background-color: rgb(192, 76, 136);
 }
 
 /* ==========================================================================

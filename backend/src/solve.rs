@@ -137,7 +137,8 @@ fn add_action_to_div(action: Action, document: &Document, div: &Element) -> Resu
     match action.steps {
         ActionSteps::Move { mv } => {
             let span = document.create_element("span")?;
-            span.set_text_content(Some(&mv.to_string()));
+            // Zero-width space
+            span.set_text_content(Some(&format!("{}\u{200b}", mv)));
             span.set_class_name("history-move");
             div.append_child(&span)?;
         }
@@ -163,16 +164,9 @@ fn add_action_to_div(action: Action, document: &Document, div: &Element) -> Resu
                         // But first, add the collated moves.
                         if !collated_moves.is_empty() {
                             let li = document.create_element("li")?;
-                            for (i, mv) in
-                                std::mem::take(&mut collated_moves).into_iter().enumerate()
-                            {
-                                if i != 0 {
-                                    let span = document.create_element("span")?;
-                                    span.set_text_content(Some(" "));
-                                    li.append_child(&span)?;
-                                }
+                            for mv in std::mem::take(&mut collated_moves) {
                                 let span = document.create_element("span")?;
-                                span.set_text_content(Some(&mv.to_string()));
+                                span.set_text_content(Some(&format!("{}\u{200b}", mv)));
                                 span.set_class_name("history-move");
                                 li.append_child(&span)?;
                             }
@@ -187,14 +181,9 @@ fn add_action_to_div(action: Action, document: &Document, div: &Element) -> Resu
             }
             if !collated_moves.is_empty() {
                 let li = document.create_element("li")?;
-                for (i, mv) in std::mem::take(&mut collated_moves).into_iter().enumerate() {
-                    if i != 0 {
-                        let span = document.create_element("span")?;
-                        span.set_text_content(Some(" "));
-                        li.append_child(&span)?;
-                    }
+                for mv in std::mem::take(&mut collated_moves) {
                     let span = document.create_element("span")?;
-                    span.set_text_content(Some(&mv.to_string()));
+                    span.set_text_content(Some(&format!("{}\u{200b}", mv)));
                     span.set_class_name("history-move");
                     li.append_child(&span)?;
                 }

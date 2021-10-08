@@ -184,7 +184,13 @@ let currentAlgStep = -1;
         button.addEventListener('click', (_ev) => {
             if (!cube.animating) {
                 cube.reset();
+
                 currentAlgStep = -1;
+                const historyAction = document.getElementById('history-action');
+                const moves = Array.from(historyAction.getElementsByClassName('history-move'));
+                moves.forEach((elt) => {
+                    elt.classList.remove('selected-history-move');
+                });
             }
         });
         button.innerText = 'Reset';
@@ -216,6 +222,11 @@ function processHistory(moveSequence: Array<Move>) {
                     cube.performAlg(slice);
                     currentAlgStep = i;
                 }
+
+                moves.forEach((elt) => {
+                    elt.classList.remove('selected-history-move');
+                });
+                element.classList.add('selected-history-move');
             }
         });
     });

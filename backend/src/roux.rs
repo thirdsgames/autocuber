@@ -15,6 +15,8 @@ type RouxPairSignature = (
     (CornerCubelet, CyclicGroup<3>),
 );
 type RouxCmllSignature = [(CornerCubelet, CyclicGroup<3>); 4];
+type RouxEoSignature = ([CyclicGroup<2>; 6], bool);
+type RouxLrSignature = ([EdgeCubelet; 2], CornerCubelet);
 type RouxEolrSignature = ([CyclicGroup<2>; 6], [EdgeCubelet; 2], CornerCubelet, bool);
 type RouxL4eSignature = ([EdgeCubelet; 4], CentreCubelet);
 
@@ -132,20 +134,50 @@ lazy_static::lazy_static! {
         let gen_set = vec![
             // AUF
             "U",
-            // J perm
+            // Kian's CMLL algs:
+            // O
             "R U R' F' R U R' U' R' F R2 U' R'",
-            // Y perm
             "F R U' R' U' R U R' F' R U R' U' R' F R F'",
-            // Antisune
-            "R' U' R U' R' U2 R",
+            // H
+            "R U2 R' U' R U R' U' R U' R'",
+            "F R U R' U' R U R' U' R U R' U' F'",
+            "R U2' R2' F R F' U2 R' F R F'",
+            "r U' r2' D' r U' r' D r2 U r'",
+            // Pi
+            "F R U R' U' R U R' U' F'",
+            "F R' F' R U2 R U' R' U R U2' R'",
+            "R' F R U F U' R U R' U' F'",
+            "R U2 R' U' R U R' U2' R' F R F'",
+            "r U' r2' D' r U r' D r2 U r'",
+            "R' U' R' F R F' R U' R' U2 R",
+            // U
+            "R2 D R' U2 R D' R' U2 R'",
+            "R2' D' R U2 R' D R U2 R",
+            "R2' F U' F U F2 R2 U' R' F R",
+            "F R2 D R' U R D' R2' U' F'",
+            "r U' r' U r' D' r U' r' D r",
+            "F R U R' U' F'",
+            // T
+            "R U R' U' R' F R F'",
+            "L' U' L U L F' L' F",
+            "F R' F R2 U' R' U' R U R' F2",
+            "r' U r U2' R2' F R F' R",
+            "r' D' r U r' D r U' r U r'",
+            "r2' D' r U r' D r2 U' r' U' r",
             // Sune
             "R U R' U R U2 R'",
-            // L
-            "R' F2 R' U' R F2 R' U R2",
-            // Sexy move cases
-            "F R U R' U' F'",
-            "F R U R' U' R U R' U' F'",
-            "F R U R' U' R U R' U' R U R' U' F'",
+            "L' U2 L U2' L F' L' F",
+            "F R' F' R U2 R U2' R'",
+            "R U R' U' R' F R F' R U R' U R U2' R'",
+            "R U R' U R' F R F' R U2' R'",
+            "R U' L' U R' U' L",
+            // Antisune
+            "R' U' R U' R' U2' R",
+            "R2 D R' U R D' R' U R' U' R U' R'",
+            "F' L F L' U2' L' U2 L",
+            "R U2' R' U2 R' F R F'",
+            "L' U R U' L U R'",
+            "R' U' R U' R' U R' F R F' U R",
             ]
             .into_iter()
             .map(|x| x.parse::<MoveSequence>().unwrap())
@@ -169,6 +201,64 @@ lazy_static::lazy_static! {
             (CornerCubelet(BUR), CyclicGroup::identity()),
             (CornerCubelet(BUL), CyclicGroup::identity()),
         ], |seq| {
+            seq.moves.len() as u64
+        })
+    };
+
+    static ref EO: SequenceSolver<RouxEoSignature> = {
+        let gen_set = vec!["U", "M"]
+            .into_iter()
+            .map(|x| x.parse::<MoveSequence>().unwrap())
+            .collect::<Vec<_>>();
+
+        let graph = SequenceGraph::new("roux_eo", gen_set, |cube| {
+            let axis_swapped = matches!(cube.centres().act(&CentreCubelet(FaceType::U)).0, FaceType::F | FaceType::B);
+
+            ([
+                // Unact is used to get edge orientation: we don't care which edge is in this position,
+                // just how it is oriented relative to where the edge should belong.
+                cube.edges()
+                    .unact(&(EdgeCubelet(UF), CyclicGroup::identity())).1,
+                cube.edges()
+                    .unact(&(EdgeCubelet(UB), CyclicGroup::identity())).1,
+                cube.edges()
+                    .unact(&(EdgeCubelet(DB), CyclicGroup::identity())).1,
+                cube.edges()
+                    .unact(&(EdgeCubelet(DF), CyclicGroup::identity())).1,
+                cube.edges()
+                    .unact(&(EdgeCubelet(UL), CyclicGroup::identity())).1,
+                cube.edges()
+                    .unact(&(EdgeCubelet(UR), CyclicGroup::identity())).1,
+            ], axis_swapped)
+        });
+        graph.search(([CyclicGroup::identity(); 6], false), |seq| {
+            seq.moves.len() as u64
+        })
+    };
+
+    /// The cube is assumed to have U/D faces pointing on U/D (or swapped).
+    static ref LR: SequenceSolver<RouxLrSignature> = {
+        let gen_set = vec![
+            "U", "M2",
+            "M U2 M", "M U2 M'", "M' U2 M'", "M' U2 M",
+        ]
+            .into_iter()
+            .map(|x| x.parse::<MoveSequence>().unwrap())
+            .collect::<Vec<_>>();
+
+        let graph = SequenceGraph::new("roux_lr", gen_set, |cube| {
+            (
+                [
+                    cube.edges()
+                        .act(&(EdgeCubelet(UL), CyclicGroup::identity())).0,
+                    cube.edges()
+                        .act(&(EdgeCubelet(UR), CyclicGroup::identity())).0,
+                ],
+                cube.corners()
+                    .act(&(CornerCubelet(FUL), CyclicGroup::identity())).0,
+            )
+        });
+        graph.search(([EdgeCubelet(UL), EdgeCubelet(UR)], CornerCubelet(FUL)), |seq| {
             seq.moves.len() as u64
         })
     };
@@ -225,17 +315,13 @@ lazy_static::lazy_static! {
 
     /// The signature is the last four edges' positions (UF UB DB DF), and the front-facing centre.
     static ref L4E: SequenceSolver<RouxL4eSignature> = {
+        // There must be an even number of U2 mnves,
+        // otherwise LR is messed up.
+        // However, the L4E are actually unsolvable wih an odd amount of U2 moves, since
+        // a 2-cycle of edges is impossible excluding U2 moves!
+        // So somewhat surprisingly, this signature is sufficient.
         let gen_set = vec![
-            "U2 M U2 M",
-            "U2 M' U2 M",
-            "U2 M U2 M'",
-            "U2 M' U2 M'",
-            "U2 M2 U2",
-            "M' U2 M2 U2 M",
-            "M' U2 M2 U2 M'",
-            "E2 M E2 M",
-            "E2 M E2 M'",
-            "M2"
+            "M", "U2", "E2 M' E2", "E2 M E2"
         ]
             .into_iter()
             .map(|x| x.parse::<MoveSequence>().unwrap())
@@ -382,6 +468,73 @@ pub fn cmll_action(permutation: CubePermutation3) -> Option<Action> {
     cmll(permutation).map(|seq| move_sequence_to_intuitive_action("CMLL", seq))
 }
 
+pub fn eo(permutation: CubePermutation3) -> Option<&'static MoveSequence> {
+    let axis_swapped = matches!(
+        permutation.centres().act(&CentreCubelet(FaceType::U)).0,
+        FaceType::F | FaceType::B
+    );
+
+    EO.solve(&(
+        [
+            // Unact is used to get edge orientation: we don't care which edge is in this position,
+            // just how it is oriented relative to where the edge should belong.
+            permutation
+                .edges()
+                .unact(&(EdgeCubelet(UF), CyclicGroup::identity()))
+                .1,
+            permutation
+                .edges()
+                .unact(&(EdgeCubelet(UB), CyclicGroup::identity()))
+                .1,
+            permutation
+                .edges()
+                .unact(&(EdgeCubelet(DB), CyclicGroup::identity()))
+                .1,
+            permutation
+                .edges()
+                .unact(&(EdgeCubelet(DF), CyclicGroup::identity()))
+                .1,
+            permutation
+                .edges()
+                .unact(&(EdgeCubelet(UL), CyclicGroup::identity()))
+                .1,
+            permutation
+                .edges()
+                .unact(&(EdgeCubelet(UR), CyclicGroup::identity()))
+                .1,
+        ],
+        axis_swapped,
+    ))
+}
+
+pub fn eo_action(permutation: CubePermutation3) -> Option<Action> {
+    eo(permutation)
+        .map(|seq| move_sequence_to_intuitive_action("Orientation of last six edges", seq.clone()))
+}
+
+pub fn lr(permutation: CubePermutation3) -> Option<&'static MoveSequence> {
+    LR.solve(&(
+        [
+            permutation
+                .edges()
+                .act(&(EdgeCubelet(UL), CyclicGroup::identity()))
+                .0,
+            permutation
+                .edges()
+                .act(&(EdgeCubelet(UR), CyclicGroup::identity()))
+                .0,
+        ],
+        permutation
+            .corners()
+            .act(&(CornerCubelet(FUL), CyclicGroup::identity()))
+            .0,
+    ))
+}
+
+pub fn lr_action(permutation: CubePermutation3) -> Option<Action> {
+    lr(permutation).map(|seq| move_sequence_to_intuitive_action("UL and UR edges", seq.clone()))
+}
+
 pub fn eolr(permutation: CubePermutation3) -> Option<&'static MoveSequence> {
     EOLR.solve(&(
         [
@@ -482,7 +635,8 @@ pub fn solve(mut permutation: CubePermutation3) -> Option<Action> {
     add_step(third_pair_action);
     add_step(fourth_pair_action);
     add_step(cmll_action);
-    add_step(eolr_action);
+    add_step(eo_action);
+    add_step(lr_action);
     add_step(l4e_action);
 
     Some(Action {

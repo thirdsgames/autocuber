@@ -1,4 +1,5 @@
 use crate::{
+    algorithmic::AlgorithmicSolver,
     cube::{
         Axis, FaceType, Move, MoveSequence,
         {CornerType::*, EdgeType::*},
@@ -129,12 +130,9 @@ lazy_static::lazy_static! {
         })
     };
 
-    /// Solves CMLL and then adjusts the U face.
-    static ref CMLL_AUF: SequenceSolver<RouxCmllSignature> = {
-        let gen_set = vec![
-            // AUF
-            "U",
-            // Kian's CMLL algs:
+    static ref CMLL: AlgorithmicSolver<RouxCmllSignature> = {
+        // Kian's CMLL algs:
+        let alg_set = vec![
             // O
             "R U R' F' R U R' U' R' F R2 U' R'",
             "F R U' R' U' R U R' F' R U R' U' R' F R F'",
@@ -183,7 +181,10 @@ lazy_static::lazy_static! {
             .map(|x| x.parse::<MoveSequence>().unwrap())
             .collect::<Vec<_>>();
 
-        let graph = SequenceGraph::new("roux_cmll", gen_set, |cube| {
+        let pre_moves = vec!["U".parse::<MoveSequence>().unwrap()];
+        let post_moves = vec!["U".parse::<MoveSequence>().unwrap()];
+
+        AlgorithmicSolver::new("roux_cmll", alg_set, pre_moves, post_moves, |cube| {
             [
                 cube.corners()
                     .act(&(CornerCubelet(FUL), CyclicGroup::identity())),
@@ -194,13 +195,7 @@ lazy_static::lazy_static! {
                 cube.corners()
                     .act(&(CornerCubelet(BUL), CyclicGroup::identity())),
             ]
-        });
-        graph.search([
-            (CornerCubelet(FUL), CyclicGroup::identity()),
-            (CornerCubelet(FUR), CyclicGroup::identity()),
-            (CornerCubelet(BUR), CyclicGroup::identity()),
-            (CornerCubelet(BUL), CyclicGroup::identity()),
-        ], |seq| {
+        }, |seq| {
             seq.moves.len() as u64
         })
     };
@@ -440,7 +435,7 @@ pub fn fourth_pair_action(permutation: CubePermutation3) -> Option<Action> {
 }
 
 pub fn cmll(permutation: CubePermutation3) -> Option<MoveSequence> {
-    let cmll = CMLL_AUF.solve(&[
+    let cmll = CMLL.solve(&[
         permutation
             .corners()
             .act(&(CornerCubelet(FUL), CyclicGroup::identity())),

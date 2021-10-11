@@ -10,6 +10,7 @@ mod permute;
 mod roux;
 mod solve;
 mod utils;
+mod algorithmic;
 
 use wasm_bindgen::prelude::*;
 
